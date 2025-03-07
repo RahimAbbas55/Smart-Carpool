@@ -16,9 +16,7 @@ export default function DriverIdScreen({ navigation }) {
   }
   return (
     <View style={styles.container}>
-      {/* Content */}
       <View style={styles.content}>
-        {/* Photo Section */}
         <View style={styles.photoContainer}>
           <Text style={styles.photoLabel}>Photo</Text>
           <Image
@@ -80,6 +78,8 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: "center",
     marginBottom: 16,
+    borderWidth: 2,
+    borderColor: globalColors.violetBlue
   },
   photoLabel: {
     fontSize: 16,

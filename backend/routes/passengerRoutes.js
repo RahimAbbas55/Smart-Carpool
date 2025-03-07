@@ -144,7 +144,7 @@ router.post('/userData' , async (req , res) => {
       return res.send({ status: 'ok' , data : data });
     });
   } catch (error){
-    return res.send({ error: error.message}); 
+    return res.send({ error: error.message }); 
   }
 })
 

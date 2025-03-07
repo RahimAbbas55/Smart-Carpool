@@ -35,7 +35,7 @@ export default function CNICDetail({ navigation }){
           </TouchableOpacity>
         </View>
         <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>CNIC</Text>
+          <Text style={styles.inputLabel}>CNIC Number</Text>
           <TextInput 
             style={styles.input} 
             placeholder="Enter CNIC number" 
@@ -75,6 +75,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 20,
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: globalColors.violetBlue
   },
   cardTitle: {
     fontSize: 16,
@@ -101,6 +103,8 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 10,
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: globalColors.violetBlue
   },
   inputLabel: {
     fontSize: 16,
@@ -115,6 +119,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     fontSize: 16,
+    borderWidth: 2,
+    borderColor: globalColors.violetBlue
   },
   doneButton: {
     alignItems: "center",

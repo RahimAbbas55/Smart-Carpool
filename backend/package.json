@@ -17,9 +17,12 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.8.4",
+    "mongoose": "^8.9.5",
     "nodemailer": "^6.9.16",
+    "socket.io": "^4.8.1",
+    "socketio": "^1.0.0",
     "textflow.js": "^0.1.4",
-    "twilio": "^5.4.0"
+    "twilio": "^5.4.0",
+    "ws": "^8.18.0"
   }
 }

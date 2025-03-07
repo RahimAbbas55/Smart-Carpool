@@ -2,8 +2,7 @@ import { View, Text, StyleSheet, Image } from "react-native";
 import { Button } from "react-native-elements";
 import { globalColors } from "../constants/colors";
 
-
-function RideCard({ data , nextNavigation , backNavigation }) {
+function RideCard({ data , offerNavigation , backNavigation , acceptNavigation}) {
   return (
     <>
       <View key={data.id} style={styles.requestCard}>
@@ -12,7 +11,7 @@ function RideCard({ data , nextNavigation , backNavigation }) {
             style={styles.profilePic}
             source={{ uri: "https://via.placeholder.com/50" }}
           />
-          <Text style={styles.personText}>{data.person}</Text>
+          <Text style={styles.personText}>{data.passengerName}</Text>
           <View>
             <Text style={styles.distanceText}>{data.distance}</Text>
             <Text style={styles.timeText}>{data.time}</Text>
@@ -20,12 +19,21 @@ function RideCard({ data , nextNavigation , backNavigation }) {
         </View>
         <Text style={styles.pickUpText}>
           <Text style={styles.boldText}>Pick Up: </Text>
-          {data.pickUp}
+          {data.requestOrigin}
         </Text>
         <Text style={styles.dropOffText}>
           <Text style={styles.boldText}>Drop Off: </Text>
-          {data.dropOff}
+          {data.requestDestination}
         </Text>
+        <Text style={styles.dropOffText}>
+          <Text style={styles.boldText}>Pkr.</Text>
+          <Text style={styles.boldText}> {data.requestFare}</Text>
+        </Text>
+        <Button
+            title="Accept Ride"
+            buttonStyle={[styles.acceptButton , styles.additionalBtn]}
+            onPress={acceptNavigation}
+          />
         <View style={styles.buttonContainer}>
           <Button
             title="Decline"
@@ -33,9 +41,9 @@ function RideCard({ data , nextNavigation , backNavigation }) {
             onPress={backNavigation}
           />
           <Button
-            title="Accept"
+            title={`Offer ${Number(data.requestFare) * 0.2 + Number(data.requestFare)}`}
             buttonStyle={styles.acceptButton}
-            onPress={nextNavigation}
+            onPress={offerNavigation}
           />
         </View>
       </View>
@@ -108,4 +116,8 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     paddingHorizontal: 20,
   },
+  additionalBtn:{
+    marginTop: 10,
+    backgroundColor: "#4CAF50",
+  }
 });

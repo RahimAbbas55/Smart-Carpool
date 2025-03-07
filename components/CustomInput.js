@@ -14,7 +14,7 @@ const CustomInput = ({ placeholder, secureTextEntry, onChangeText, style }) => (
 const styles = StyleSheet.create({
   input: {
     width: '100%',
-    height: 50, // Default height
+    height: 50,
     borderWidth: 1,
     borderColor: '#DADADA',
     borderRadius: 8,

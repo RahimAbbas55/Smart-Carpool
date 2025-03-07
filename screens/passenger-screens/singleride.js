@@ -1,15 +1,55 @@
+import { useState , useEffect} from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import React, { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { getUserData } from '../../data-service/auth';
+import { getFirestore, collection, addDoc } from 'firebase/firestore';
+import { app } from '../../data-service/firebase';
 import Button from '../../components/Button';
 
-const SingleRideScreen = () => {
+const SingleRideScreen = ({ route }) => {
+    const data = route.params.rideData;
     const navigation = useNavigation();
     const [selectedDriver, setSelectedDriver] = useState('female');
+    const [userData , setuserData] = useState(null);
 
-    const handleFindDriver = () => {
-        navigation.navigate('ChooseDriver');
+    useEffect(() => {
+        const fetchUserData = async() => {
+            try {
+                const data = await getUserData();
+                setuserData(data);
+            } catch (error) {
+                console.log('fetchUserData error:', error.message);
+            }
+        }
+        fetchUserData();
+    } , [])
+    const handleFindDriver = async () => {
+        const db = getFirestore(app);
+        const rideData = {
+            passengerName: userData?.name,
+            passengerCurrentLocationLatitude: data.location.latitude,
+            passengerCurrentLocationLongitude: data.location.longitude,
+            requestType: data.mode.toLowerCase(),
+            requestVehicle: data.rideType,
+            requestAccepted: false,
+            requestOrigin: data.pickup,
+            requestDestination: data.dropoff,
+            requestFare: data.fare,
+            requestCapacity: 1,
+            driverGender: selectedDriver,
+        };
+    
+        try {
+            const docRef = await addDoc(collection(db, 'Rides'), rideData);
+            const rideId = docRef.id;
+            setTimeout(() => {
+                navigation.navigate('ChooseDriver' , { rideId });
+            }, 1000);
+        } catch (error) {
+            console.log("Error saving ride:", error.message);
+            Alert.alert("Error", "Failed to request ride. Please try again.");
+        }
     };
 
     return (

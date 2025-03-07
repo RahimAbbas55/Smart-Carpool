@@ -8,7 +8,7 @@ import HistoryScreen from './history';
 import LoginScreen from './login';
 import PackagesScreen from './packages';
 import RatingsAndReviewsScreen from './ratingsandreviews';
-import RequestRideScreen from './ride';
+import RequestRideScreen from './RequestRideScreen';
 import SettingsScreen from './settings';
 import WalletScreen from './wallet';
 
@@ -28,7 +28,10 @@ const MenuScreen = ({ navigation }) => {
     try {
       await AsyncStorage.removeItem('authToken');
       Alert.alert('Success', 'You have been logged out.');
-      navigation.navigate('Login');
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      })
     } catch (error) {
       console.error('Error logging out:', error);
       Alert.alert('Error', 'An error occurred while logging out. Please try again.');
@@ -41,7 +44,11 @@ const MenuScreen = ({ navigation }) => {
       onPress={() => {
         if (item.name === 'Logout') {
           handleLogout();
-        } else {
+        } 
+        else if ( item.name === 'Home'){
+          navigation.goBack()
+        }
+        else {
           navigation.navigate(item.name);
         }
       }}

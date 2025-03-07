@@ -2,7 +2,6 @@ import React from 'react';
 import { Image, StyleSheet } from 'react-native';
 
 const Logo = ({ source }) => {
-  console.log('Logo Source:', source);
   return <Image source={source} style={styles.logo} resizeMode="contain" />;
 };
 

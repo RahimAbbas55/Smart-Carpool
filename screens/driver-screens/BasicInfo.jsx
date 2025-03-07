@@ -110,6 +110,8 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: "center",
     marginBottom: 16,
+    borderWidth: 2,
+    borderColor: globalColors.violetBlue
   },
   photoLabel: {
     fontSize: 16,
@@ -146,6 +148,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 8,
     padding: 16,
+    borderWidth: 2,
+    borderColor: globalColors.violetBlue
   },
   inputLabel: {
     fontSize: 16,
@@ -160,6 +164,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     marginBottom: 16,
+    borderWidth: 2,
+    borderColor: globalColors.violetBlue,
   },
   optionalField: {
     flexDirection: "row",

@@ -75,6 +75,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 20,
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: globalColors.violetBlue
   },
   cardTitle: {
     fontSize: 16,
@@ -101,6 +103,8 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 10,
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: globalColors.violetBlue
   },
   inputLabel: {
     fontSize: 16,

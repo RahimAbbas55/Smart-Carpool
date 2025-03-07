@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Alert, StyleSheet, Text, View , Platform } from 'react-native';
+import { useState, useContext } from 'react';
+import { Alert, StyleSheet, Text, View } from 'react-native';
+import { getBackendUrl } from '../../constants/ipConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Button from '../../components/Button';
 import InputField from '../../components/InputField';
@@ -16,8 +17,8 @@ const LoginScreen = ({ navigation }) => {
       return;
     }
     try {
-      const serverURL = Platform.OS === 'android' ? 'http://10.0.2.2:50/api/passenger/login' : 'http://localhost:50/api/passenger/login';
-      const response = await fetch(serverURL, {
+      const serverURL = getBackendUrl();
+      const response = await fetch(`${serverURL}passenger/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -25,11 +26,10 @@ const LoginScreen = ({ navigation }) => {
         body: JSON.stringify({ email, password }),
       });
       const data = await response.json();
-      console.log(data)
       if (data.status === 'ok') {
-        await AsyncStorage.setItem('authToken', data.token); 
+        await AsyncStorage.setItem('authToken', data.token);
         Alert.alert('Success', 'Login successful!');
-        navigation.replace('Home');
+        navigation.navigate('Home');
       } else {
         Alert.alert('Error', data.message || 'Login failed.');
       }
@@ -38,6 +38,7 @@ const LoginScreen = ({ navigation }) => {
       Alert.alert('Error', 'An error occurred while logging in.');
     }
   };
+
   return (
     <View style={styles.container}>
       <Logo source={require('../../assets/logo.jpeg')} />

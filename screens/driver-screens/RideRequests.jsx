@@ -1,59 +1,71 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList } from 'react-native';
 import { globalColors } from '../../constants/colors';
+import { collection, getFirestore, onSnapshot, doc, updateDoc } from 'firebase/firestore';
+import { app } from '../../data-service/firebase';
 import RideCard from '../../components/RideCard';
 
-// Replace with data from db
-const requests = [
-  {
-    id: 1,
-    person: 'Person 1',
-    distance: '5km Away',
-    time: '10 min',
-    pickUp: 'FAST NUCES',
-    dropOff: 'Liberty Market',
-  },
-  {
-    id: 2,
-    person: 'Person 2',
-    distance: '0.8km Away',
-    time: '3 min',
-    pickUp: 'Barkat Market',
-    dropOff: 'Gulberg 3',
-  },
-  {
-    id: 3,
-    person: 'Person 3',
-    distance: '1km Away',
-    time: '5 min',
-    pickUp: 'Faisal Town',
-    dropOff: 'Hafeez Center',
-  },
-  {
-    id: 4,
-    person: 'Person 3',
-    distance: '1km Away',
-    time: '5 min',
-    pickUp: 'Faisal Town',
-    dropOff: 'Hafeez Center',
-  },
-  {
-    id: 5,
-    person: 'Person 3',
-    distance: '1km Away',
-    time: '5 min',
-    pickUp: 'Faisal Town',
-    dropOff: 'Hafeez Center',
-  },
-];
-
 export default function RideRequests({ navigation }) {
+  const [requests, setRequests] = useState([]);
+  const db = getFirestore(app);
 
-  function backNavigation(){
+  useEffect(() => {
+    const ridesRef = collection(db, 'Rides');
+    
+    const unsubscribe = onSnapshot(ridesRef, (snapshot) => {
+      const ridesData = snapshot.docs
+        .map(doc => ({
+          _id: doc.id,
+          ...doc.data()
+        }))
+        .filter(ride => ride.requestAccepted === false);
+      setRequests(ridesData);
+    }, (error) => {
+      console.error("Error fetching rides: ", error);
+    });
+
+    return () => unsubscribe();
+  }, []);
+  
+  function backNavigation() {
     navigation.goBack();
   }
-  function navigationHandler(){
-    navigation.navigate('ridedetails');
+
+  async function nextNavigation(id , fare) {
+    try {
+      const rideRef = doc(db, 'Rides', id);
+      await updateDoc(rideRef, {
+        driverName: 'Aamir Liaqut',
+        driverCar: 'Supra',
+        carNumber: 'ABC-123',
+        time: '10 minutes',
+        distance: '5 km',
+        price: '10',
+        offeredPrice: Number((Number(fare) * 0.2) + Number(fare)),
+        request: false
+      });
+      // navigation.navigate('ridedetails');
+    } catch (error) {
+      console.error('Error updating ride status:', error);
+    }
+  }
+
+  async function acceptNavigation(id){
+    try {
+      const rideRef = doc(db, 'Rides', id);
+      await updateDoc(rideRef, {
+        requestAccepted: true, 
+        driverName: 'Rahim Abbas',
+        car: 'Honda City',
+        carNumber: 'ACS-091',
+        driverNumber: '0306-6136094'
+      });
+      setTimeout(() => {
+        navigation.navigate('ridedetails' , {rideId : id})
+      } , 5000)
+    } catch (error) {
+      console.error('Error accepting ride request:', error);
+    }
   }
   return (
     <>
@@ -63,9 +75,14 @@ export default function RideRequests({ navigation }) {
       <FlatList
         style={styles.container}
         data={requests}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item._id}
         renderItem={({ item }) => (
-          <RideCard data={item} nextNavigation={navigationHandler} backNavigation={backNavigation}/>
+          <RideCard 
+            data={{...item, id: item._id}}
+            acceptNavigation={ () => acceptNavigation(item._id)}
+            nextNavigation={() => nextNavigation(item._id , item.requestFare)}
+            backNavigation={backNavigation}
+          />
         )}
       />
     </>
