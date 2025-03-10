@@ -61,120 +61,26 @@ const RideRequestCard = ({ data, onAccept, onDecline, isWaitingForDriver }) => (
   </View>
 );
 
-const ChooseDriverScreen = ({ navigation, route }) => {
+const ChooseCarpool = ({ navigation, route }) => {
   const rideId = route.params?.rideId;
   const [rideData, setRideData] = useState(null);
   const [isWaitingForDriver, setIsWaitingForDriver] = useState(true);
   const db = getFirestore(app);
 
   useEffect(() => {
-    if (!rideId) {
-      console.log("No ride ID provided");
-      return;
-    }
-    
-    console.log("Setting up listener for ride:", rideId);
-    const rideRef = doc(db, "Rides", rideId);
-    
-    const unsubscribe = onSnapshot(
-      rideRef,
-      (doc) => {
-        if (doc.exists()) {
-          const data = doc.data();
-          setRideData(data);
-          console.log("Ride data updated:", data);
-          
-          // Log the acceptance statuses
-          console.log("Acceptance status:", {
-            requestAccepted: data.requestAccepted,
-            passengerAccepted: data.passengerAccepted
-          });
-          
-          // Update waiting state based on whether a driver has responded
-          setIsWaitingForDriver(!data.driverName);
 
-          // If both driver and passenger have accepted, move to ongoing ride
-          if (data.requestAccepted && data.passengerAccepted) {
-            console.log("Both parties accepted, navigating to OngoingRide");
-            navigation.replace("OngoingRide", {
-              rideId: rideId,
-              driverName: data.driverName,
-              carName: data.car,
-              carNumber: data.carNumber,
-              pickup: data.requestOrigin,
-              dropoff: data.requestDestination,
-              fare: data.offeredPrice || data.requestFare,
-              driverNumber: data.driverNumber
-            });
-          }
-        } else {
-          console.log("Ride document does not exist");
-        }
-      },
-      (error) => {
-        console.error("Error getting ride updates:", error);
-        Alert.alert("Error", "Failed to get ride updates. Please try again.");
-      }
-    );
-
-    return () => {
-      console.log("Cleaning up listener");
-      unsubscribe();
-    };
-  }, [rideId, navigation]);
+  }, []);
 
   const handleAcceptDriver = async () => {
-    try {
-      console.log("Passenger accepting driver for ride:", rideId);
-      const rideRef = doc(db, "Rides", rideId);
-      await updateDoc(rideRef, {
-        passengerAccepted: true,
-        status: "ongoing" // Add a status field to track the ride state
-      });
-      console.log("Passenger acceptance updated in Firestore");
-    } catch (error) {
-      console.error("Error accepting driver:", error);
-      Alert.alert("Error", "Failed to accept driver. Please try again.");
-    }
+
   };
 
   const handleDeclineDriver = async () => {
-    try {
-      console.log("Passenger declining driver for ride:", rideId);
-      const rideRef = doc(db, "Rides", rideId);
-      await updateDoc(rideRef, {
-        requestAccepted: false,
-        driverName: null,
-        car: null,
-        carNumber: null,
-        driverNumber: null,
-        offeredPrice: null,
-        status: "searching"
-      });
-      Alert.alert("Driver Declined", "Waiting for another driver...");
-      setIsWaitingForDriver(true);
-      console.log("Driver declined, reset to waiting state");
-    } catch (error) {
-      console.error("Error declining driver:", error);
-      Alert.alert("Error", "Failed to decline driver. Please try again.");
-    }
+      
   };
 
   const handleCancelRequest = async () => {
-    try {
-      console.log("Passenger cancelling ride request:", rideId);
-      const rideRef = doc(db, "Rides", rideId);
-      await updateDoc(rideRef, {
-        status: "cancelled",
-        isCancelled: true
-      });
-      Alert.alert("Request Cancelled", "Your ride request has been cancelled.");
-      navigation.replace("Home");
-      console.log("Ride cancelled, navigating to Home");
-    } catch (error) {
-      console.error("Error cancelling request:", error);
-      Alert.alert("Error", "Failed to cancel request. Please try again.");
-    }
+    
   };
 
   return (
@@ -329,4 +235,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ChooseDriverScreen;
+export default ChooseCarpool;

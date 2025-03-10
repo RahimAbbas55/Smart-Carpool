@@ -26,6 +26,7 @@ import SettingsScreen from "./screens/passenger-screens/settings";
 import SignUpScreen from "./screens/passenger-screens/signup";
 import SingleRideScreen from "./screens/passenger-screens/singleride";
 import WalletScreen from "./screens/passenger-screens/wallet";
+import ChooseCarpool from "./screens/passenger-screens/ChooseCarpool";
 // Driver Screens
 import RideRequests from "./screens/driver-screens/RideRequests";
 import RidePage from "./screens/driver-screens/RidePage";
@@ -39,7 +40,7 @@ import ThankYouPage from "./screens/driver-screens/ThankYou";
 import RideDetails from "./screens/driver-screens/RideDetails";
 import Settings from "./screens/driver-screens/Settings";
 import RideHistory from "./screens/driver-screens/RideHistory";
-import { getUserData } from "./data-service/auth";
+import CarpoolRequests from "./screens/driver-screens/CarpoolRequests";
 
 const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
@@ -179,6 +180,11 @@ export default function App() {
               component={ChooseDriverScreen}
               options={{ headerShown: false }}
             />
+            <Stack.Screen 
+              name="carpool_driver"
+              component={ChooseCarpool}
+              options={{ headerShown: false }}
+              />
             <Stack.Screen
               name="ContactUs"
               component={ContactUsScreen}
@@ -310,6 +316,11 @@ export default function App() {
             <Stack.Screen
               name="requests"
               component={RideRequests}
+              // options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="carpool_requests"
+              component={CarpoolRequests}
               // options={{ headerShown: false }}
             />
             <Stack.Screen

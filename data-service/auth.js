@@ -26,6 +26,7 @@ export async function getUserData() {
     }
     const data = await response.json();
     return {
+      userId: data.data._id,
       name: data.data.name,
       email: data.data.email,
       phone: data.data.phone,

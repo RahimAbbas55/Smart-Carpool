@@ -12,6 +12,7 @@ import {
   Platform,
   ActivityIndicator,
 } from "react-native";
+import { getUserData } from "../../data-service/auth";
 import { GOOGLE_API_KEY } from "@env";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
 import MapView, { Marker , Polyline} from "react-native-maps";
@@ -29,11 +30,11 @@ const RequestRideScreen = ({ navigation }) => {
   const [selectedRideOption, setSelectedRideOption] = useState(null);
   const [pickup, setPickup] = useState(null); 
   const [dropoff, setDropoff] = useState(null); 
-  const [destination, setDestination] = useState(null);
   const [fare, setFare] = useState("");
   const [pickupCoords, setPickupCoords] = useState(null); 
   const [dropoffCoords, setDropoffCoords] = useState(null);
   const [routeCoordinates, setRouteCoordinates] = useState([]);
+  const [ userData , setUserData ] = useState(null);
 
   // useEffect to fetch the current location
   useEffect(() => {
@@ -60,6 +61,19 @@ const RequestRideScreen = ({ navigation }) => {
         Alert.alert("Location Error", "Could not retrieve your current location.");
       }
     })();
+  }, []);
+
+  // useEffect to fetch User Data
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const data = await getUserData();
+        setUserData(data);
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        }
+    };
+    fetchUserData();
   }, []);
 
   useEffect(() => {
@@ -130,7 +144,6 @@ const RequestRideScreen = ({ navigation }) => {
   };
 
   const handleNextPress = () => {
-    // console.log(pickup , dropoff , fare , selectedRideOption , currentLocation)
     if (!pickup || !dropoff || !fare || !selectedRideOption || !currentLocation) {
       Alert.alert(
         "Error",
@@ -140,12 +153,16 @@ const RequestRideScreen = ({ navigation }) => {
     }
 
     const rideData = {
+      passengerId: [userData.userId],
+      passengerName: [userData.name],
+      passengerPhone: [userData.phone],
       mode: activeMode,
       rideType: selectedRideOption,
       pickup,
       dropoff,
       fare,
-      location: currentLocation,
+      passengerCurrentLocationLatitude: currentLocation.latitude,
+      passengerCurrentLocationLongitude: currentLocation.longitude
     };
     if (activeMode === "Carpool") {
       navigation.navigate("CarpoolRide", { rideData });
@@ -188,7 +205,8 @@ const RequestRideScreen = ({ navigation }) => {
           { id: "economy", label: "Economy", iconName: "directions-car" },
           { id: "rickshaw", label: "Rickshaw", iconName: "local-taxi" },
           { id: "bike", label: "Bike", iconName: "pedal-bike" },
-        ].map((option) => (
+        ].filter(option => activeMode === "carpool" ? ["ac", "economy"].includes(option.id) : true)
+        .map((option) => (
           <TouchableOpacity
             key={option.id}
             style={[

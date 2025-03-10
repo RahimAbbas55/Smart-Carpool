@@ -57,6 +57,12 @@ const RidePage = ({ navigation }) => {
   function navigationHandler() {
     navigation.navigate("requests");
   }
+  function checkCarpoolRidesHandler() {
+    navigation.navigate("carpool_requests" , {driverLocation:{
+      latitude: location.latitude,
+      longitude: location.longitude
+    }});
+  }
 
   if (!location) {
     return (
@@ -89,9 +95,18 @@ const RidePage = ({ navigation }) => {
       </MapView>
 
       {/* Incoming ride button */}
-      <TouchableOpacity style={styles.doneButton} onPress={navigationHandler}>
-        <Text style={styles.buttonText}>Incoming Rides</Text>
-      </TouchableOpacity>
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.doneButton} onPress={navigationHandler}>
+          <Text style={styles.buttonText}>Incoming Rides</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.doneButton}
+          onPress={checkCarpoolRidesHandler}
+        >
+          <Text style={styles.buttonText}>Check Carpool Rides</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -103,17 +118,25 @@ const styles = StyleSheet.create({
   mapView: {
     flex: 1,
   },
-  doneButton: {
+  buttonContainer: {
+    flexDirection: "row", // Change from "column" to "row"
+    justifyContent: "space-around", // Adjust spacing
+    alignItems: "center",
     position: "absolute",
     bottom: 50,
-    left: "50%",
-    transform: [{ translateX: -75 }],
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+  },
+
+  doneButton: {
     backgroundColor: globalColors.violetBlue,
     borderRadius: 24,
     paddingVertical: 12,
     paddingHorizontal: 24,
     alignItems: "center",
   },
+
   activityIndicator: {
     flex: 1,
     justifyContent: "center",

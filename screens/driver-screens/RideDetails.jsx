@@ -225,7 +225,7 @@ const RideDetails = ({ navigation, route }) => {
   }
 
   function checkNewRequestsHandler() {
-    navigation.navigate("requests");
+    navigation.navigate("carpool_requests");
   }
 
   if (loading || !location) {

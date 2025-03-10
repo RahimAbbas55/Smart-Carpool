@@ -1,16 +1,19 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import React, { useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { db } from '../../data-service/firebase';
+import { collection, addDoc } from "firebase/firestore";
 import Button from '../../components/Button';
 
-const CarpoolRideScreen = ({route}) => {
+const CarpoolRideScreen = ({ route }) => {
     const navigation = useNavigation();
     const [selectedDriver, setSelectedDriver] = useState('female'); 
     const [selectedCarpoolers, setSelectedCarpoolers] = useState('male'); 
     const [additionalPassengers, setAdditionalPassengers] = useState(2);
     const { rideData } = route.params;
 
+    // Helper functions for incrementing and decrementing passenger count
     const incrementPassengers = () => {
         setAdditionalPassengers(additionalPassengers + 1);
     };
@@ -21,8 +24,36 @@ const CarpoolRideScreen = ({route}) => {
         }
     };
 
-    const handleDriver = () => {
-        navigation.navigate('OngoingRide', { rideData }); 
+    // Helper function to add ride to Firestore
+    const addRideToFirestore = async (rideData) => {
+        try {
+            const docRef = await addDoc(collection(db, "CarpoolRides"), rideData);
+            console.log("Ride added with ID: ", docRef.id);
+        } catch (error) {
+            console.error("Error adding ride: ", error);
+        }
+    };
+
+    // Adding the request to firestore
+    const handleDriver = async () => {
+
+        if ( additionalPassengers > 3 ){
+            Alert.alert('Error', 'You can only add 3 additional passengers!');
+            return;
+        }
+        const updatedRideData = {
+            ...rideData,
+            selectedDriver,
+            selectedCarpoolers,
+            additionalPassengers,
+            rideStatus: 'pending'
+        };
+        await addRideToFirestore(updatedRideData);
+        setTimeout(() => {
+            Alert.alert('Ride Request Sent', 'Waiting for driver to accept your request');
+            navigation.navigate('carpool_driver');
+        }
+        , 4000);
     };
 
     return (

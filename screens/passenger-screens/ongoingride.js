@@ -77,6 +77,8 @@ const OngoingRideScreen = ({ navigation, route }) => {
   const [mapRegion, setMapRegion] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const data = route.params;
+
+  console.log(data)
   
   useEffect(() => {
     const fetchLocations = async () => {
@@ -151,21 +153,6 @@ const OngoingRideScreen = ({ navigation, route }) => {
       longitudeDelta: Math.max(lngDelta, minDelta),
     });
   };
-
-  const cancelHelper = async () => {
-    try {
-      const rideDocref = doc(db , "Rides" , rideId);
-      await updateDoc(rideDocref, {
-        status: "cancelled",
-        cancelledAt: new Date(),
-      });
-      Alert.alert('Ride Cancelled Successfully!');
-      navigation.navigate('Home')
-    } catch (error) {
-      console.error("Driver: Error completing ride:", error); 
-    }
-
-  }
 
   // Navigation Functions
   const handleCancelRide = () => {
