@@ -4,10 +4,12 @@ import React, { useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Button from '../../components/Button';
 
-const ReviewScreen = () => {
-    const navigation = useNavigation();
+const ReviewScreen = ({ navigation , route }) => {
     const [rating, setRating] = useState(0);
     const [review, setReview] = useState('');
+    const { rideData} = route.params;
+
+    console.log('in review screen' , rideData)
 
     const handleRating = (index) => {
         setRating(index);

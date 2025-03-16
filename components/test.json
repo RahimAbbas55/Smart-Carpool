@@ -1,0 +1,20 @@
+{
+  "additionalPassengers": 2,
+  "currentPassengers": 3,
+  "dropoff": "Defence Raya Golf Resort Sector M DHA Phase 6, Lahore, Pakistan",
+  "fare": "500",
+  "mode": "Carpool",
+  "passengerCurrentLocationLatitude": 31.4800968,
+  "passengerCurrentLocationLongitude": 74.2980605,
+  "passengerId": ["67c5d629e24f2dd1472a6807"],
+  "passengerName": ["Temporary User"],
+  "passengerPhone": ["+923066136000"],
+  "pickup": "FAST NUCES, Milaad Street, Block B Faisal Town, Lahore, Pakistan",
+  "rideStatus": "ongoing",
+  "rideType": "economy",
+  "selectedCarpoolers": "male",
+  "selectedDriver": {
+    "driverId": "your-driver-id",
+    "driverName": "Your Driver Name"
+  }
+}

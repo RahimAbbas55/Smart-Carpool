@@ -1,84 +1,31 @@
-// import { useEffect, useState } from "react";
-// import { View, Text, StyleSheet, FlatList } from "react-native";
-// import { globalColors } from "../../constants/colors";
-// import {
-//   collection,
-//   getFirestore,
-//   onSnapshot,
-//   doc,
-//   updateDoc,
-// } from "firebase/firestore";
-// import { app } from "../../data-service/firebase";
-// import RideCard from "../../components/RideCard";
-
-// export default function CarpoolRequests({ navigation, route }) {
-//   const [requests, setRequests] = useState([]);
-//   const db = getFirestore(app);
-//   const { driverLocation } = route.params;
-//   console.log('Driver location is:' , driverLocation);
-//   useEffect(() => {}, []);
-
-//   function backNavigation() {
-//     navigation.goBack();
-//   }
-
-//   async function nextNavigation(id, fare) {}
-
-//   async function acceptNavigation(id) {}
-//   return (
-//     <>
-//       <View style={styles.headingView}>
-//         <Text style={styles.headingText}>Incoming Carpool Ride Requests</Text>
-//       </View>
-//       {/* <FlatList
-//         style={styles.container}
-//         data={requests}
-//         keyExtractor={(item) => item._id}
-//         renderItem={({ item }) => (
-//           <RideCard
-//             data={{...item, id: item._id}}
-//             acceptNavigation={ () => acceptNavigation(item._id)}
-//             nextNavigation={() => nextNavigation(item._id , item.requestFare)}
-//             backNavigation={backNavigation}
-//           />
-//         )}
-//       /> */}
-//     </>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     padding: 20,
-//     backgroundColor: globalColors.lavender,
-//     marginBottom: 10,
-//   },
-//   headingView: {
-//     backgroundColor: globalColors.lavender,
-//     justifyContent: "center",
-//     alignItems: "center",
-//     paddingTop: 60,
-//     paddingBottom: 10,
-//   },
-//   headingText: {
-//     fontSize: 22,
-//     fontWeight: "bold",
-//     color: "#000",
-//   },
-// });
 import { useEffect, useState } from "react";
-import { View, Text, StyleSheet, FlatList } from "react-native";
+import { View, Text, StyleSheet, FlatList, Alert } from "react-native";
 import { globalColors } from "../../constants/colors";
-import { collection, getFirestore, onSnapshot } from "firebase/firestore";
+import { collection, getFirestore, onSnapshot , doc, getDoc, updateDoc } from "firebase/firestore";
 import { app } from "../../data-service/firebase";
-import RideCard from "../../components/RideCard";
+import CarpoolRideCard from "../../components/CarpoolRideCard";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export default function CarpoolRequests({ navigation, route }) {
+export default function CarpoolRequests({ navigation }) {
   const [requests, setRequests] = useState([]);
   const db = getFirestore(app);
-  const { driverLocation } = route.params;
+  const [driverLocation, setDriverLocation] = useState(null);
 
+  useEffect(() => {
+    // Fetch and set driver location from AsyncStorage
+    async function fetchDriverLocation() {
+      const latitude = await AsyncStorage.getItem("Driver_Latitude");
+      const longitude = await AsyncStorage.getItem("Driver_Longitude");
+
+      if (latitude && longitude) {
+        setDriverLocation({
+          latitude: parseFloat(latitude),
+          longitude: parseFloat(longitude),
+        });
+      }
+    }
+    fetchDriverLocation();
+  }, []); 
   useEffect(() => {
     const unsubscribe = onSnapshot(
       collection(db, "CarpoolRides"),
@@ -87,29 +34,64 @@ export default function CarpoolRequests({ navigation, route }) {
           _id: doc.id,
           ...doc.data(),
         }));
-        const filteredRequests = allRequests.filter((ride) =>
-          isWithin5Km(
-            driverLocation.latitude,
-            driverLocation.longitude,
-            ride.passengerCurrentLocationLatitude,
-            ride.passengerCurrentLocationLongitude
-          )
+  
+        const filteredRequests = allRequests.filter(
+          (ride) =>
+            (ride.rideStatus === "pending" || ride.rideStatus === "ongoing") &&
+            isWithin5Km(
+              driverLocation.latitude,
+              driverLocation.longitude,
+              ride.passengerCurrentLocationLatitude,
+              ride.passengerCurrentLocationLongitude
+            )
         );
-
         setRequests(filteredRequests);
       }
     );
-
+  
     return () => unsubscribe();
   }, [driverLocation]);
+  
 
   function backNavigation() {
     navigation.goBack();
   }
 
-  async function nextNavigation(id, fare) {}
-
-  async function acceptNavigation(id) {}
+  async function acceptNavigation(id) {
+    try {
+      const rideRef = doc(db, "CarpoolRides", id);
+      const rideId = rideRef.id;
+      const rideSnap = await getDoc(rideRef);
+  
+      if (!rideSnap.exists()) {
+        console.log("Ride not found!");
+        return;
+      }
+  
+      const rideData = rideSnap.data();
+      const maxCapacity = 4;
+  
+      if (rideData.currentPassengers >= maxCapacity) {
+        console.log("Ride is already full!");
+        return;
+      }
+  
+      await updateDoc(rideRef, {
+        rideStatus: "ongoing",
+        currentPassengers: rideData.additionalPassengers + 1,
+        // Optionally add driver details
+        selectedDriver: {
+          driverId: "your-driver-id", // Replace with actual driver ID
+          driverName: "Your Driver Name", // Replace with actual name
+        },
+      });
+  
+      Alert.alert("Ride accepted successfully!");
+      navigation.navigate('carpoolridedetails' , { data : rideId})
+    } catch (error) {
+      console.error("Error accepting ride:", error);
+    }
+  }
 
   return (
     <>
@@ -117,17 +99,15 @@ export default function CarpoolRequests({ navigation, route }) {
         <Text style={styles.headingText}>Incoming Carpool Ride Requests</Text>
       </View>
 
-      {/* FIX THE RIDE CARD OF THIS */}
       <FlatList
         style={styles.container}
         data={requests}
         keyExtractor={(item) => item._id}
         renderItem={({ item }) => (
-          <RideCard
+          <CarpoolRideCard
             data={{ ...item, id: item._id }}
-            acceptNavigation={() => acceptNavigation(item._id)}
-            nextNavigation={() => nextNavigation(item._id, item.requestFare)}
-            backNavigation={backNavigation}
+            onAccept={() => acceptNavigation(item._id)}
+            onReject={backNavigation}
           />
         )}
       />
@@ -135,8 +115,6 @@ export default function CarpoolRequests({ navigation, route }) {
   );
 }
 
-// HELPER FUNCTION TO DETERMINE WHETHER THE DRIVER IS WITHIN 5KM OF THE PASSENGER
-// Function to calculate distance using Haversine formula
 function isWithin5Km(lat1, lon1, lat2, lon2) {
   if (!lat1 || !lon1 || !lat2 || !lon2) return false;
 

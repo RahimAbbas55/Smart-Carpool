@@ -7,47 +7,140 @@ import {
   TextInput,
   Image,
   ScrollView,
+  Alert,
 } from "react-native";
 import { globalColors } from "../../constants/colors";
+import * as DocumentPicker from "expo-document-picker";
+import * as FileSystem from "expo-file-system";
+import axios from "axios";
+import {
+  validateDOB,
+  validateFirstName,
+  validateLastName,
+} from "../../constants/driverValidators";
 
-export default function BasicInfo({ navigation }) {
-  const [firstName , setFirstName] = useState('');
-  const [lastName , setLastName] = useState('');
-  const [dob , setDOB] = useState('');
+export default function BasicInfo({ navigation, route }) {
+  const { currentData, updateData } = route.params;
 
-  function firstNameHandler(enteredText)
-  {
-    setFirstName(enteredText)
+  const [firstName, setFirstName] = useState(currentData?.firstName || "");
+  const [lastName, setLastName] = useState(currentData?.lastName || "");
+  const [dob, setDOB] = useState(currentData?.dob || "");
+  const [photoUrl, setPhotoUrl] = useState(currentData?.driverPhoto || "");
+
+  const API_KEY = "068837d15525cd65b1c49b07e618821b";
+
+  async function pickImage() {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "image/*",
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets.length > 0) {
+        const selectedAsset = result.assets[0];
+        const base64Image = await FileSystem.readAsStringAsync(
+          selectedAsset.uri,
+          {
+            encoding: FileSystem.EncodingType.Base64,
+          }
+        );
+        uploadToImgBB(base64Image);
+      }
+    } catch (error) {
+      console.error("Error picking document:", error);
+      Alert.alert("Error", "There was an error selecting the image");
+    }
   }
 
-  function lastNameHandler(enteredText){
-    setLastName(enteredText)
+  async function uploadToImgBB(base64Image) {
+    const apiUrl = `https://api.imgbb.com/1/upload?key=${API_KEY}`;
+
+    try {
+      // Create form data
+      const formData = new FormData();
+      formData.append("image", base64Image);
+
+      const response = await axios.post(apiUrl, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      if (response.data.success) {
+        const uploadedImageUrl = response.data.data.url;
+        setPhotoUrl(uploadedImageUrl);
+      } else {
+        Alert.alert("Upload Failed", "Could not upload image to ImgBB.");
+      }
+    } catch (error) {
+      console.error("Upload error:", error.response?.data || error.message);
+      Alert.alert("Error", "There was an error uploading the image");
+    }
   }
 
-  function dobHandler(enteredText){
-    setDOB(enteredText)
-  }
+  function confirmHandler() {
+    if (!photoUrl || !firstName || !lastName || !dob) {
+      Alert.alert("Error", "Please enter data in all fields!");
+      return;
+    }
 
-  function confirmHandler(){
-    console.log(firstName , lastName , dob);
-    navigation.goBack('details');
-  }
+    if (validateFirstName(firstName)) {
+      Alert.alert(
+        "Error",
+        "First name must contain only letters and be at least 2 characters long."
+      );
+      return;
+    }
 
+    if (validateLastName(lastName)) {
+      Alert.alert(
+        "Error",
+        "Last name must contain only letters and be at least 2 characters long."
+      );
+      return;
+    }
+
+    if (validateDOB(dob)) {
+      Alert.alert("Error", "Date of Birth must be in YYYY-MM-DD format.");
+      return;
+    }
+
+    updateData({
+      driverPhoto: photoUrl,
+      firstName: firstName,
+      lastName: lastName,
+      dob: dob,
+    });
+
+    navigation.goBack();
+  }
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.content}>
-        {/* Photo Section */}
         <View style={styles.photoContainer}>
           <Text style={styles.photoLabel}>Photo</Text>
-          <Image
-            source={require("../../assets/pictures/id-card.jpg")}
-            style={styles.photoImage}
-            resizeMode="contain"
-          />
-          <TouchableOpacity style={styles.addPhotoButton}>
-            <Text style={styles.addPhotoButtonText}>Add a photo*</Text>
+
+          {photoUrl ? (
+            <Image
+              source={{ uri: photoUrl }}
+              style={styles.photoImage}
+              resizeMode="contain"
+            />
+          ) : (
+            <Image
+              source={require("../../assets/pictures/id-card.jpg")}
+              style={styles.photoImage}
+              resizeMode="contain"
+            />
+          )}
+
+          <TouchableOpacity style={styles.addPhotoButton} onPress={pickImage}>
+            <Text style={styles.addPhotoButtonText}>
+              {photoUrl ? "Change photo*" : "Add a photo*"}
+            </Text>
           </TouchableOpacity>
+
           <View style={styles.photoInstructions}>
             <Text style={styles.instructionText}>• Clearly visible face</Text>
             <Text style={styles.instructionText}>• Without sunglasses</Text>
@@ -57,19 +150,32 @@ export default function BasicInfo({ navigation }) {
           </View>
         </View>
 
-        {/* Form Fields */}
         <View style={styles.form}>
           <Text style={styles.inputLabel}>First name</Text>
-          <TextInput style={styles.input} placeholder="Please Enter Your First Name" onChangeText={firstNameHandler}/>
+          <TextInput
+            style={styles.input}
+            placeholder="Please Enter Your First Name"
+            onChangeText={setFirstName}
+            value={firstName}
+          />
 
           <Text style={styles.inputLabel}>Last name</Text>
-          <TextInput style={styles.input} placeholder="Please Enter Your Last Name" onChangeText={lastNameHandler}/>
+          <TextInput
+            style={styles.input}
+            placeholder="Please Enter Your Last Name"
+            onChangeText={setLastName}
+            value={lastName}
+          />
 
           <View style={styles.optionalField}>
             <Text style={styles.inputLabel}>Date of birth</Text>
-            <Text style={styles.optionalText}>Optional</Text>
           </View>
-          <TextInput style={styles.input} placeholder="Please Enter Your Date of Birth" onChangeText={dobHandler}/>
+          <TextInput
+            style={styles.input}
+            placeholder="Please Enter Your Date of Birth (YYYY-MM-DD)"
+            onChangeText={setDOB}
+            value={dob}
+          />
 
           <TouchableOpacity style={styles.doneButton} onPress={confirmHandler}>
             <Text style={styles.doneButtonText}>Done</Text>
@@ -86,23 +192,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#f2f2f2",
     paddingTop: 50,
   },
-  backButton: {
-    color: "#fff",
-    fontSize: 18,
-  },
-  headerTitle: {
-    color: "#fff",
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-  closeButton: {
-    color: "#fff",
-    fontSize: 16,
-  },
   content: {
     flex: 1,
     paddingHorizontal: 10,
-    // paddingTop: ,
   },
   photoContainer: {
     backgroundColor: "#fff",
@@ -111,7 +203,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 16,
     borderWidth: 2,
-    borderColor: globalColors.violetBlue
+    borderColor: globalColors.violetBlue,
   },
   photoLabel: {
     fontSize: 16,
@@ -149,7 +241,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     borderWidth: 2,
-    borderColor: globalColors.violetBlue
+    borderColor: globalColors.violetBlue,
   },
   inputLabel: {
     fontSize: 16,
@@ -167,19 +259,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: globalColors.violetBlue,
   },
-  optionalField: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  optionalText: {
-    fontSize: 14,
-    color: "#888",
-  },
-  doneButtonText: {
-    fontSize: 16,
-    color: "#fff",
-  },
   doneButton: {
     backgroundColor: globalColors.violetBlue,
     borderRadius: 24,
@@ -187,5 +266,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginHorizontal: 16,
     marginTop: 16,
+  },
+  doneButtonText: {
+    fontSize: 16,
+    color: "#fff",
   },
 });

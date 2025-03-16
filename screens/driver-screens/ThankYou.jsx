@@ -17,10 +17,10 @@ export default function ThankYou({ navigation }) {
   }, []);
 
   function returnToHomepage() {
-    navigation.navigate("Home");
-  }
-  function returnToMainpage() {
-    navigation.navigate("drawer");
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Home' }],
+    })
   }
 
   return (
@@ -41,11 +41,6 @@ export default function ThankYou({ navigation }) {
       <Text style={styles.text}>and reach you back in 24 hours!</Text>
       <TouchableOpacity style={styles.btn} onPress={returnToHomepage}>
         <Text style={styles.btnText}>Return to Homepage</Text>
-      </TouchableOpacity>
-
-      {/* TEMPORARY NAVIGATION */}
-      <TouchableOpacity style={styles.btn} onPress={returnToMainpage}>
-        <Text style={styles.btnText}>Return to Main Page</Text>
       </TouchableOpacity>
     </View>
   );

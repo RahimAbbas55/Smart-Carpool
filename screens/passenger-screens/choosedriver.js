@@ -131,7 +131,6 @@ const ChooseDriverScreen = ({ navigation, route }) => {
         passengerAccepted: true,
         status: "ongoing" // Add a status field to track the ride state
       });
-      console.log("Passenger acceptance updated in Firestore");
     } catch (error) {
       console.error("Error accepting driver:", error);
       Alert.alert("Error", "Failed to accept driver. Please try again.");
@@ -153,7 +152,6 @@ const ChooseDriverScreen = ({ navigation, route }) => {
       });
       Alert.alert("Driver Declined", "Waiting for another driver...");
       setIsWaitingForDriver(true);
-      console.log("Driver declined, reset to waiting state");
     } catch (error) {
       console.error("Error declining driver:", error);
       Alert.alert("Error", "Failed to decline driver. Please try again.");
@@ -170,7 +168,6 @@ const ChooseDriverScreen = ({ navigation, route }) => {
       });
       Alert.alert("Request Cancelled", "Your ride request has been cancelled.");
       navigation.replace("Home");
-      console.log("Ride cancelled, navigating to Home");
     } catch (error) {
       console.error("Error cancelling request:", error);
       Alert.alert("Error", "Failed to cancel request. Please try again.");

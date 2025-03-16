@@ -5,7 +5,7 @@ import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import getCoordinates from '../../data-service/helper';
 import { GOOGLE_API_KEY } from "@env";
 import { db } from '../../data-service/firebase';
-import { updateDoc } from '@firebase/firestore';
+import { updateDoc ,doc, onSnapshot} from '@firebase/firestore';
 
 const getDirections = async (origin, destination, apiKey) => {
   try {
@@ -80,6 +80,7 @@ const OngoingRideScreen = ({ navigation, route }) => {
 
   console.log(data)
   
+  // Location useEffect
   useEffect(() => {
     const fetchLocations = async () => {
       try {
@@ -120,6 +121,24 @@ const OngoingRideScreen = ({ navigation, route }) => {
     
     fetchLocations();
   }, [data]);
+
+  // Listen for when the ride is completed
+  useEffect(() => {
+    if (!data.rideId) return; 
+  
+    const rideRef = doc(db, 'Rides', data.rideId); // Adjust collection name if needed
+  
+    const unsubscribe = onSnapshot(rideRef, (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        const rideData = docSnapshot.data();
+        if (rideData.status === "completed") {
+          navigation.replace('Review', { rideData: rideData });
+        }
+      }
+    });
+  
+    return () => unsubscribe();
+  }, [data.rideId, navigation]);
 
   const calculateMapRegion = (pickup, dropoff, routePoints = []) => {
     let minLat = Math.min(pickup.latitude, dropoff.latitude);

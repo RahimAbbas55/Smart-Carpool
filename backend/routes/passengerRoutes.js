@@ -41,11 +41,13 @@ router.post('/signup', async (req, res) => {
 
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
+  console.log( email, password)
   try {
     const user = await Passenger.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+    console.log(user)
+    // if (!user) {
+    //   return res.status(404).json({ message: 'User not found' });
+    // }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
@@ -53,8 +55,7 @@ router.post('/login', async (req, res) => {
     }
 
     // Create JWT token
-    const token = jwt.sign({ email: user.email }, jwt_token_secret, { expiresIn: '1h' });
-
+    const token = jwt.sign({ email: user.email }, jwt_token_secret, { expiresIn: '5h' });
     // Return success response with the token
     return res.status(201).json({
       status: 'ok',

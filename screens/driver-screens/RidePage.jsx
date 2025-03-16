@@ -12,13 +12,18 @@ import {
 import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
 import { globalColors } from "../../constants/colors";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRoute } from "@react-navigation/native";
+import { useDriverData } from "../../context/DriverContext";
 
 const { height: screenHeight } = Dimensions.get("window");
 
-const RidePage = ({ navigation }) => {
+const RidePage = ({ navigation , route }) => {
   const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   const animatedHeight = useRef(new Animated.Value(screenHeight * 0.5)).current;
+  // pass to other screens
+  const { driverData } = useDriverData();
 
   const panResponder = useRef(
     PanResponder.create({
@@ -48,19 +53,27 @@ const RidePage = ({ navigation }) => {
         setErrorMsg("Permission to access location was denied");
         return;
       }
-
       let currentLocation = await Location.getCurrentPositionAsync({});
       setLocation(currentLocation.coords);
+      // await AsyncStorage.setItem('Driver_Latitude' , location.latitude)
+      // await AsyncStorage.setItem('Driver_Longitude' , location.longitude)
+      await AsyncStorage.setItem('Driver_Latitude' , '31.4800906')
+      await AsyncStorage.setItem('Driver_Longitude' , '74.2980626')
     })();
   }, []);
 
   function navigationHandler() {
-    navigation.navigate("requests");
+    navigation.navigate("requests" , { data : driverData });
   }
   function checkCarpoolRidesHandler() {
+    // navigation.navigate("carpool_requests" , {driverLocation:{
+    //   latitude: location.latitude,
+    //   longitude: location.longitude
+    // }});
+    
     navigation.navigate("carpool_requests" , {driverLocation:{
-      latitude: location.latitude,
-      longitude: location.longitude
+      latitude: 31.4800906,
+      longitude: 74.2980626
     }});
   }
 

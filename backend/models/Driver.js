@@ -1,36 +1,34 @@
 const mongoose = require('mongoose');
+
 const driverSchema = new mongoose.Schema({
+    passengerId: {
+        type: String,
+        required: true
+    },
+    driverPassword: {
+        type: String,
+        required: [true , 'Password required']
+    },
     driverEmail: {
         type: String,
-        required: [true, 'Email is required']
+        required: [true, 'Email is required'],
+        unique: true
     },
     driverPhone: {
         type: String,
         required: [true, 'Phone is required']
     },
-    driverPassword: {
-        type: String,
-        required: [true, 'Password is required']
-    },
-    driverPhoto:{
-        type: String,
-        required: [true, 'Photo is required']
-    },
-    driverFirstName:{
+    driverFirstName: {
         type: String,
         required: [true, 'First Name is required']
     },
-    driverLastName:{
+    driverLastName: {
         type: String,
         required: [true, 'Last Name is required']
     },
-    driverDOB:{
+    driverDOB: {
         type: Date,
         required: [true, 'Date of Birth is required']
-    },
-    driverGender:{
-        type: String,
-        required: [true, 'Gender is required']
     },
     driverCnicFront: {
         type: String,
@@ -50,17 +48,48 @@ const driverSchema = new mongoose.Schema({
     },
     vehicleRegisterationFront: {
         type: String,
-        required: [true, 'Vehicle Registeration Front is required']
+        required: [true, 'Vehicle Registration Front is required']
     },
     vehicleRegisterationBack: {
         type: String,
-        required: [true, 'Vehicle Registeration Back is required']
+        required: [true, 'Vehicle Registration Back is required']
     },
     vehicleProductionYear: {
         type: String,
         required: false
+    },
+    vehicleType: {
+        type: String,
+        required: [true, 'Vehicle type is required']
+    },
+    carType: {
+        type: String,
+        required: [true, 'Car type is required']
+    },
+    vehiclePhotos: {
+        type: [String],
+        required: false
+    },
+    rating: {
+        type: Number,
+        default: 0 
+    },
+    vehicleName: {
+        type: String,
+        required: [true, 'Vehicle Name is required']
+    },
+    vehicleColor: {
+        type: String,
+        required: [true, 'Vehicle Color is required']
+    },
+    licenseNumber: {
+        type: String,
+        required: [true, 'License Number is required']
+    },
+    brand: {
+        type: String,
+        required: [true, 'Brand is required']
     }
-
 });
 
 const Driver = mongoose.model('Driver', driverSchema, 'drivers');

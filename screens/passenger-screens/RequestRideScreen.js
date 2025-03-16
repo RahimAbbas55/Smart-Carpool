@@ -144,6 +144,7 @@ const RequestRideScreen = ({ navigation }) => {
   };
 
   const handleNextPress = () => {
+    console.log('hello')
     if (!pickup || !dropoff || !fare || !selectedRideOption || !currentLocation) {
       Alert.alert(
         "Error",
@@ -151,7 +152,6 @@ const RequestRideScreen = ({ navigation }) => {
       );
       return;
     }
-
     const rideData = {
       passengerId: [userData.userId],
       passengerName: [userData.name],
@@ -174,7 +174,7 @@ const RequestRideScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <TouchableOpacity
-        onPress={() => navigation.navigate("Menu")}
+        onPress={() => navigation.navigate("Menu" , { data : userData })}
         style={styles.menuIcon}
       >
         <MaterialIcons name="menu" size={30} color="black" />
@@ -189,7 +189,7 @@ const RequestRideScreen = ({ navigation }) => {
             <Marker coordinate={currentLocation} title="Current Location" />
             {pickupCoords && <Marker coordinate={pickupCoords} title="Pickup Location" pinColor="green" />}
             {dropoffCoords && <Marker coordinate={dropoffCoords} title="Dropoff Location" pinColor="red" />}
-            {routeCoordinates.length > 0 && <Polyline coordinates={routeCoordinates} strokeWidth={3} strokeColor="#1E40AF" />} {/* ✅ Fixed Polyline rendering */}
+            {routeCoordinates.length > 0 && <Polyline coordinates={routeCoordinates} strokeWidth={3} strokeColor="#1E40AF" />} 
           </MapView>
         ) : (
           <ActivityIndicator size="large" color="#0000ff" />

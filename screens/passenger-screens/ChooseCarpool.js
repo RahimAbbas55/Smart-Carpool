@@ -1,17 +1,44 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { MaterialIcons } from "@expo/vector-icons";
 import {
-  Alert,
   FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
   ActivityIndicator,
+  Alert,
 } from "react-native";
-import { getFirestore, doc, onSnapshot, updateDoc } from "firebase/firestore";
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  updateDoc,
+  addDoc,
+  onSnapshot,
+  deleteDoc,
+} from "firebase/firestore";
 import { app } from "../../data-service/firebase";
 import Button from "../../components/Button";
+
+// Haversine formula to calculate distance between two lat/lon points
+const getDistance = (lat1, lon1, lat2, lon2) => {
+  const toRad = (value) => (value * Math.PI) / 180;
+  const R = 6371; // Radius of Earth in km
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distance in km
+};
 
 const RideRequestCard = ({ data, onAccept, onDecline, isWaitingForDriver }) => (
   <View style={styles.card}>
@@ -55,32 +82,103 @@ const RideRequestCard = ({ data, onAccept, onDecline, isWaitingForDriver }) => (
       </>
     ) : (
       <View style={styles.waitingContainer}>
-        <Text style={styles.waitingText}>Request cancelled. Please try again.</Text>
+        <Text style={styles.waitingText}>
+          Request cancelled. Please try again.
+        </Text>
       </View>
     )}
   </View>
 );
 
 const ChooseCarpool = ({ navigation, route }) => {
-  const rideId = route.params?.rideId;
-  const [rideData, setRideData] = useState(null);
+  const [rideData, setRideData] = useState(route.params.rideData || null);
   const [isWaitingForDriver, setIsWaitingForDriver] = useState(true);
   const db = getFirestore(app);
 
   useEffect(() => {
-
+    findMatchingRide();
   }, []);
 
+  // Function to find an existing carpool ride
+  const findMatchingRide = async () => {
+    try {
+      const q = query(
+        collection(db, "CarpoolRides"),
+        where("rideStatus", "==", "pending")
+      );
+      const querySnapshot = await getDocs(q);
+      let matchedRide = null;
+
+      querySnapshot.forEach((doc) => {
+        const ride = doc.data();
+        const distance = getDistance(
+          ride.dropoffLatitude,
+          ride.dropoffLongitude,
+          rideData.passengerCurrentLocationLatitude,
+          rideData.passengerCurrentLocationLongitude
+        );
+
+        if (distance < 5 && ride.passengerId.length < 4) {
+          matchedRide = { id: doc.id, ...ride };
+        }
+      });
+
+      if (matchedRide) {
+        // Update the ride data state to reflect the existing ride
+        setRideData(matchedRide);
+
+        // Add the new passenger to the existing ride
+        const rideRef = doc(db, "CarpoolRides", matchedRide.id);
+        await updateDoc(rideRef, {
+          passengerId: [...matchedRide.passengerId, rideData.passengerId[0]],
+          passengerName: [...matchedRide.passengerName, rideData.passengerName[0]],
+          passengerPhone: [...matchedRide.passengerPhone, rideData.passengerPhone[0]],
+          additionalPassengers: matchedRide.additionalPassengers + rideData.additionalPassengers,
+        });
+        Alert.alert("Ride Joined!", "You have been added to an existing carpool.");
+      } else {
+        // Create a new ride request
+        const newRide = {
+          ...rideData,
+          rideStatus: "pending",
+        };
+        const docRef = await addDoc(collection(db, "CarpoolRides"), newRide);
+        newRide.id = docRef.id;
+        setRideData(newRide);
+        Alert.alert("New Ride Created!", "No existing ride found. A new ride request has been created.");
+      }
+    } catch (error) {
+      console.error("Error finding or creating ride:", error);
+    }
+  };
+
+  // Function to accept the driver
   const handleAcceptDriver = async () => {
-
+    if (rideData?.id) {
+      const rideRef = doc(db, "CarpoolRides", rideData.id);
+      await updateDoc(rideRef, { passengerAccepted: true });
+      setIsWaitingForDriver(false);
+      Alert.alert("Ride Accepted", "You have accepted the driver.");
+    }
   };
 
+  // Function to decline the driver
   const handleDeclineDriver = async () => {
-      
+    if (rideData?.id) {
+      const rideRef = doc(db, "CarpoolRides", rideData.id);
+      await updateDoc(rideRef, { passengerAccepted: false });
+      setIsWaitingForDriver(true);
+      Alert.alert("Ride Declined", "You have declined the driver.");
+    }
   };
 
+  // Function to cancel the ride request
   const handleCancelRequest = async () => {
-    
+    if (rideData?.id) {
+      await deleteDoc(doc(db, "CarpoolRides", rideData.id));
+      Alert.alert("Ride Canceled", "Your ride request has been canceled.");
+      navigation.goBack();
+    }
   };
 
   return (
@@ -110,7 +208,7 @@ const ChooseCarpool = ({ navigation, route }) => {
         )}
         contentContainerStyle={styles.container}
       />
-      
+
       {isWaitingForDriver && (
         <TouchableOpacity
           style={styles.cancelButton}
@@ -122,7 +220,6 @@ const ChooseCarpool = ({ navigation, route }) => {
     </>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     padding: 15,

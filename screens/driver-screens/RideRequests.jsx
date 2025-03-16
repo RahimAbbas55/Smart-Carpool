@@ -5,10 +5,10 @@ import { collection, getFirestore, onSnapshot, doc, updateDoc } from 'firebase/f
 import { app } from '../../data-service/firebase';
 import RideCard from '../../components/RideCard';
 
-export default function RideRequests({ navigation }) {
+export default function RideRequests({ navigation , route }) {
   const [requests, setRequests] = useState([]);
+  const { data } = route.params
   const db = getFirestore(app);
-
   useEffect(() => {
     const ridesRef = collection(db, 'Rides');
     
@@ -55,10 +55,11 @@ export default function RideRequests({ navigation }) {
       const rideRef = doc(db, 'Rides', id);
       await updateDoc(rideRef, {
         requestAccepted: true, 
-        driverName: 'Rahim Abbas',
-        car: 'Honda City',
-        carNumber: 'ACS-091',
-        driverNumber: '0306-6136094'
+        driverId: data?.id,
+        driverName: data?.firstName + '' + data?.lastName,
+        car: data?.vehicle,
+        carNumber: data?.licensePlate,
+        driverNumber: data?.driverPhone
       });
       setTimeout(() => {
         navigation.navigate('ridedetails' , {rideId : id})

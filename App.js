@@ -4,9 +4,6 @@ import { createDrawerNavigator } from "@react-navigation/drawer";
 import { useState, useEffect } from "react";
 import { globalColors } from "./constants/colors";
 import { ActivityIndicator } from "react-native";
-import { Provider } from "react-redux";
-import { store } from "./redux/store";
-import * as Network from "expo-network";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 // Passenger Screens
 import CarpoolRideScreen from "./screens/passenger-screens/carpoolride";
@@ -41,12 +38,17 @@ import RideDetails from "./screens/driver-screens/RideDetails";
 import Settings from "./screens/driver-screens/Settings";
 import RideHistory from "./screens/driver-screens/RideHistory";
 import CarpoolRequests from "./screens/driver-screens/CarpoolRequests";
+import CarpoolRideDetail from "./screens/driver-screens/CarpoolRideDetail";
+import VehicleDetails from "./screens/driver-screens/VehicleDetails";
+import { DriverProvider } from "./context/DriverContext";
 
 const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
 
-function DriverDrawer() {
+function DriverDrawer({ route }) {
+  const { driverDetails } = route.params
   return (
+    <DriverProvider initialData={driverDetails || {}}>
     <Drawer.Navigator
       drawerType="slide"
       overlayColor="rgba(0, 0, 0, 0.5)"
@@ -94,14 +96,13 @@ function DriverDrawer() {
         }}
       />
     </Drawer.Navigator>
+    </DriverProvider>
   );
 }
 
 export default function App() {
   const [sessionToken, setSessionToken] = useState(undefined);
   const [isLoading, setisLoading] = useState(false);
-  const [ipAddress, setIpAddress] = useState("");
-  const [user , setUser] = useState(null);
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -109,7 +110,7 @@ export default function App() {
         if (token) {
           setisLoading(true);
           setSessionToken(token);
-          console.log('session token found')
+          console.log("session token found");
         } else {
           console.log("No Session Token found!");
         }
@@ -120,7 +121,7 @@ export default function App() {
       }
     };
     checkAuth();
-  }, [sessionToken]);  
+  }, [sessionToken]);
   if (isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -130,208 +131,220 @@ export default function App() {
   }
   return (
     <>
-      <Provider store={store}>
-        <NavigationContainer
-          onReady={() => console.log("Navigation Ready")}
+      <NavigationContainer onReady={() => console.log("Navigation Ready")}>
+        <Stack.Navigator
+          initialRouteName={sessionToken !== null ? "Home" : "Login"}
         >
-          <Stack.Navigator
-            initialRouteName={sessionToken !== null ? "Home" : "Login"}
-          >
-            {/* Non-Authenticated Screens */}
-            <Stack.Screen
-              name="Login"
-              component={LoginScreen}
-              options={{ gestureEnabled: false, headerShown: false }}
-            />
-            <Stack.Screen
-              name="SignUp"
-              component={SignUpScreen}
-              options={{ gestureEnabled: false, headerShown: false }}
-            />
-            <Stack.Screen
-              name="ForgetPassword"
-              component={ForgotPasswordScreen}
-              options={{ gestureEnabled: false, headerShown: false }}
-            />
-  
-            {/* Authenticated Screens */}
-            <Stack.Screen
-              name="Home"
-              component={RequestRideScreen}
-              options={{ headerShown: false, gestureEnabled: false }}
-            />
-            <Stack.Screen
-              name="Menu"
-              component={MenuScreen}
-              options={{ headerShown: false, gestureEnabled: false }}
-            />
-            <Stack.Screen
-              name="CarpoolRide"
-              component={CarpoolRideScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="SingleRide"
-              component={SingleRideScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="ChooseDriver"
-              component={ChooseDriverScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen 
-              name="carpool_driver"
-              component={ChooseCarpool}
-              options={{ headerShown: false }}
-              />
-            <Stack.Screen
-              name="ContactUs"
-              component={ContactUsScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="History"
-              component={HistoryScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="OngoingRide"
-              component={OngoingRideScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="Logout"
-              component={LoginScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="Settings"
-              component={SettingsScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="Review"
-              component={ReviewScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="Ratings and Reviews"
-              component={RatingsAndReviewsScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="ChangePassword"
-              component={ChangePasswordScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="Packages"
-              component={PackagesScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="Wallet"
-              component={WalletScreen}
-              options={{ headerShown: false }}
-            />
-            {/* Driver Screens */}
-            <Stack.Screen
-              name="Driver"
-              component={DriverRegisteration}
-              options={{
-                title: "Driver Registeration",
-                headerStyle: { backgroundColor: globalColors.violetBlue },
-                headerTintColor: "white",
-                headerTitleStyle: { fontWeight: "bold", textAlign: "center" },
-                headerBackTitle: "",
-                headerLeft: null,
-              }}
-            />
-            <Stack.Screen
-              name="details"
-              component={RegisterationDetails}
-              options={{
-                title: "Driver Details",
-                headerStyle: { backgroundColor: globalColors.violetBlue },
-                headerTintColor: "white",
-                headerTitleStyle: { fontWeight: "bold", textAlign: "center" },
-                headerBackTitle: "",
-              }}
-            />
-            <Stack.Screen
-              name="basicInfo"
-              component={BasicInfo}
-              options={{
-                title: "Basic Info",
-                headerStyle: { backgroundColor: globalColors.violetBlue },
-                headerTintColor: "white",
-                headerTitleStyle: { fontWeight: "bold", textAlign: "center" },
-                headerBackTitle: "",
-              }}
-            />
-            <Stack.Screen
-              name="cnic"
-              component={CNICDetail}
-              options={{
-                title: "CNIC Info",
-                headerStyle: { backgroundColor: globalColors.violetBlue },
-                headerTintColor: "white",
-                headerTitleStyle: { fontWeight: "bold", textAlign: "center" },
-                headerBackTitle: "",
-              }}
-            />
-            <Stack.Screen
-              name="driverId"
-              component={DriverIdScreen}
-              options={{
-                title: "Driver Photo With ID",
-                headerStyle: { backgroundColor: globalColors.violetBlue },
-                headerTintColor: "white",
-                headerTitleStyle: { fontWeight: "bold", textAlign: "center" },
-                headerBackTitle: "",
-              }}
-            />
-            <Stack.Screen
-              name="vehicleInfo"
-              component={VehicleInfo}
-              options={{
-                title: "Vehicle Info",
-                headerStyle: { backgroundColor: globalColors.violetBlue },
-                headerTintColor: "white",
-                headerTitleStyle: { fontWeight: "bold", textAlign: "center" },
-                headerBackTitle: "",
-              }}
-            />
-            <Stack.Screen
-              name="thankyou"
-              component={ThankYouPage}
-              options={{ headerShown: false, headerLeft: null }}
-            />
-            <Stack.Screen
-              name="drawer"
-              component={DriverDrawer}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="requests"
-              component={RideRequests}
-              // options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="carpool_requests"
-              component={CarpoolRequests}
-              // options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="ridedetails"
-              component={RideDetails}
-              options={{ headerShown: false }}
-            />
-          </Stack.Navigator>
-        </NavigationContainer>
-      </Provider>
+          {/* Non-Authenticated Screens */}
+          <Stack.Screen
+            name="Login"
+            component={LoginScreen}
+            options={{ gestureEnabled: false, headerShown: false }}
+          />
+          <Stack.Screen
+            name="SignUp"
+            component={SignUpScreen}
+            options={{ gestureEnabled: false, headerShown: false }}
+          />
+          <Stack.Screen
+            name="ForgetPassword"
+            component={ForgotPasswordScreen}
+            options={{ gestureEnabled: false, headerShown: false }}
+          />
+
+          {/* Authenticated Screens */}
+          <Stack.Screen
+            name="Home"
+            component={RequestRideScreen}
+            options={{ headerShown: false, gestureEnabled: false }}
+          />
+          <Stack.Screen
+            name="Menu"
+            component={MenuScreen}
+            options={{ headerShown: false, gestureEnabled: false }}
+          />
+          <Stack.Screen
+            name="CarpoolRide"
+            component={CarpoolRideScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="SingleRide"
+            component={SingleRideScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="ChooseDriver"
+            component={ChooseDriverScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="carpool_driver"
+            component={ChooseCarpool}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="ContactUs"
+            component={ContactUsScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="History"
+            component={HistoryScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="OngoingRide"
+            component={OngoingRideScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Logout"
+            component={LoginScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Settings"
+            component={SettingsScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Review"
+            component={ReviewScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Ratings and Reviews"
+            component={RatingsAndReviewsScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="ChangePassword"
+            component={ChangePasswordScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Packages"
+            component={PackagesScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Wallet"
+            component={WalletScreen}
+            options={{ headerShown: false }}
+          />
+          {/* Driver Screens */}
+
+          <Stack.Screen
+            name="Driver"
+            component={DriverRegisteration}
+            options={{
+              title: "Driver Registeration",
+              headerStyle: { backgroundColor: globalColors.violetBlue },
+              headerTintColor: "white",
+              headerTitleStyle: { fontWeight: "bold", textAlign: "center" },
+              headerBackTitle: "",
+              headerLeft: null,
+            }}
+          />
+          <Stack.Screen
+            name="details"
+            component={RegisterationDetails}
+            options={{
+              title: "Driver Details",
+              headerStyle: { backgroundColor: globalColors.violetBlue },
+              headerTintColor: "white",
+              headerTitleStyle: { fontWeight: "bold", textAlign: "center" },
+              headerBackTitle: "",
+            }}
+          />
+          <Stack.Screen
+            name="basicInfo"
+            component={BasicInfo}
+            options={{
+              title: "Basic Info",
+              headerStyle: { backgroundColor: globalColors.violetBlue },
+              headerTintColor: "white",
+              headerTitleStyle: { fontWeight: "bold", textAlign: "center" },
+              headerBackTitle: "",
+            }}
+          />
+          <Stack.Screen
+            name="cnic"
+            component={CNICDetail}
+            options={{
+              title: "CNIC Info",
+              headerStyle: { backgroundColor: globalColors.violetBlue },
+              headerTintColor: "white",
+              headerTitleStyle: { fontWeight: "bold", textAlign: "center" },
+              headerBackTitle: "",
+            }}
+          />
+          <Stack.Screen
+            name="driverId"
+            component={DriverIdScreen}
+            options={{
+              title: "Driver Photo With ID",
+              headerStyle: { backgroundColor: globalColors.violetBlue },
+              headerTintColor: "white",
+              headerTitleStyle: { fontWeight: "bold", textAlign: "center" },
+              headerBackTitle: "",
+            }}
+          />
+          <Stack.Screen
+            name="vehicleInfo"
+            component={VehicleInfo}
+            options={{
+              title: "Vehicle Info",
+              headerStyle: { backgroundColor: globalColors.violetBlue },
+              headerTintColor: "white",
+              headerTitleStyle: { fontWeight: "bold", textAlign: "center" },
+              headerBackTitle: "",
+            }}
+          />
+          <Stack.Screen
+            name="vehicleDetails"
+            component={VehicleDetails}
+            options={{
+              title: "Vehicle Details",
+              headerStyle: { backgroundColor: globalColors.violetBlue },
+              headerTintColor: "white",
+              headerTitleStyle: { fontWeight: "bold", textAlign: "center" },
+              headerBackTitle: "",
+            }}
+          />
+          <Stack.Screen
+            name="thankyou"
+            component={ThankYouPage}
+            options={{ headerShown: false, headerLeft: null }}
+          />
+          <Stack.Screen
+            name="drawer"
+            component={DriverDrawer}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="requests"
+            component={RideRequests}
+            // options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="carpool_requests"
+            component={CarpoolRequests}
+            // options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="ridedetails"
+            component={RideDetails}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="carpoolridedetails"
+            component={CarpoolRideDetail}
+            options={{ headerShown: false }}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
     </>
   );
-  
 }
