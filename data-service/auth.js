@@ -1,5 +1,4 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Platform } from "react-native";
 import { getBackendUrl } from "../constants/ipConfig";
 
 const serverURL = getBackendUrl();
@@ -30,7 +29,11 @@ export async function getUserData() {
       name: data.data.name,
       email: data.data.email,
       phone: data.data.phone,
-      password: data.data.password
+      password: data.data.password,
+      gender: data.data.gender,
+      wallet: data.data.wallet,
+      imageUrl: data.data.imageUrl,
+      rating: data.data.rating
     };
   } catch (error) {
     console.error("Error fetching user data:", error);

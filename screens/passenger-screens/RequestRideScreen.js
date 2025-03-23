@@ -76,6 +76,7 @@ const RequestRideScreen = ({ navigation }) => {
     fetchUserData();
   }, []);
 
+  // useEffect to fetch the coords of pickup and dropoff
   useEffect(() => {
     const fetchCoord = async () => {
       if (dropoff && pickup) {
@@ -119,6 +120,19 @@ const RequestRideScreen = ({ navigation }) => {
     fetchCoord();
   }, [pickup, dropoff]);
 
+  // useEffect to dynamically fetch the right fare amount
+  useEffect(() => {
+    if (pickupCoords && dropoffCoords) {
+      (async () => {
+        const coordinates = await getRoute(pickupCoords, dropoffCoords);
+        if (coordinates.length > 0) {
+          setRouteCoordinates(coordinates);
+        }
+        await calculateFare(pickupCoords, dropoffCoords); // Now fare updates dynamically
+      })();
+    }
+  }, [pickupCoords, dropoffCoords]);
+
   const getRoute = async (pickupCoords, dropoffCoords) => {
     const origin = `${pickupCoords.latitude},${pickupCoords.longitude}`;
     const destination = `${dropoffCoords.latitude},${dropoffCoords.longitude}`;
@@ -143,8 +157,34 @@ const RequestRideScreen = ({ navigation }) => {
     }
   };
 
+  const calculateFare = async (pickupCoords, dropoffCoords) => {
+    const origin = `${pickupCoords.latitude},${pickupCoords.longitude}`;
+    const destination = `${dropoffCoords.latitude},${dropoffCoords.longitude}`;
+    console.log("Calculating fare for:", pickupCoords, dropoffCoords);
+    
+    const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${destination}&key=${GOOGLE_API_KEY}`;
+
+    try {
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.rows.length > 0 && data.rows[0].elements.length > 0) {
+        const distanceInMeters = data.rows[0].elements[0].distance.value; // Distance in meters
+        const distanceInKm = distanceInMeters / 1000; // Convert to km
+
+        // Example Fare Calculation Formula
+        const baseFare = 100; // Base fare in PKR
+        const perKmRate = 50; // Rate per km in PKR
+        const estimatedFare = baseFare + perKmRate * distanceInKm;
+
+        setFare(estimatedFare.toFixed(0)); // Round to nearest PKR
+      }
+    } catch (error) {
+      console.error("Error fetching distance:", error);
+    }
+  };
+
   const handleNextPress = () => {
-    console.log('hello')
     if (!pickup || !dropoff || !fare || !selectedRideOption || !currentLocation) {
       Alert.alert(
         "Error",

@@ -69,7 +69,7 @@ const decodePolyline = (encoded) => {
   return points;
 };
 
-const OngoingRideScreen = ({ navigation, route }) => {
+const CarpoolOngoingRideScreen = ({ navigation, route }) => {
   const [currentLocation, setCurrentLocation] = useState(null);
   const [pickupCoords, setPickupCoords] = useState(null);
   const [dropoffCoords, setDropoffCoords] = useState(null);
@@ -132,7 +132,7 @@ const OngoingRideScreen = ({ navigation, route }) => {
       if (docSnapshot.exists()) {
         const rideData = docSnapshot.data();
         if (rideData.status === "completed") {
-          navigation.replace('Ride Payment', { driverId: rideData.driverId , rideFare: rideData.requestFare , rideData: data});
+          navigation.replace('Review', { rideData: rideData });
         }
       }
     });
@@ -140,8 +140,7 @@ const OngoingRideScreen = ({ navigation, route }) => {
     return () => unsubscribe();
   }, [data.rideId, navigation]);
 
-  const calculateMapRegion = (pickup, dropoff, routePoints = []) => 
-    {
+  const calculateMapRegion = (pickup, dropoff, routePoints = []) => {
     let minLat = Math.min(pickup.latitude, dropoff.latitude);
     let maxLat = Math.max(pickup.latitude, dropoff.latitude);
     let minLng = Math.min(pickup.longitude, dropoff.longitude);
@@ -210,7 +209,7 @@ const OngoingRideScreen = ({ navigation, route }) => {
             style={StyleSheet.absoluteFillObject}
             initialRegion={mapRegion}
           >
-             {pickupCoords && (
+            {pickupCoords && (
               <Marker 
                 coordinate={pickupCoords} 
                 title="Pickup"
@@ -218,7 +217,7 @@ const OngoingRideScreen = ({ navigation, route }) => {
                 pinColor="green"
               />
             )}
-
+            
             {dropoffCoords && (
               <Marker 
                 coordinate={dropoffCoords} 
@@ -372,4 +371,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default OngoingRideScreen;
+export default CarpoolOngoingRideScreen;

@@ -9,6 +9,7 @@ export default function RideRequests({ navigation , route }) {
   const [requests, setRequests] = useState([]);
   const { data } = route.params
   const db = getFirestore(app);
+
   useEffect(() => {
     const ridesRef = collection(db, 'Rides');
     
@@ -41,7 +42,7 @@ export default function RideRequests({ navigation , route }) {
         time: '10 minutes',
         distance: '5 km',
         price: '10',
-        offeredPrice: Number((Number(fare) * 0.2) + Number(fare)),
+        offeredPrice: Number((Number(fare) * 0.1) + Number(fare)),
         request: false
       });
       // navigation.navigate('ridedetails');

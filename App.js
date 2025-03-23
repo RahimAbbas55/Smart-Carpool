@@ -4,6 +4,7 @@ import { createDrawerNavigator } from "@react-navigation/drawer";
 import { useState, useEffect } from "react";
 import { globalColors } from "./constants/colors";
 import { ActivityIndicator } from "react-native";
+import { DriverProvider } from "./context/DriverContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 // Passenger Screens
 import CarpoolRideScreen from "./screens/passenger-screens/carpoolride";
@@ -24,6 +25,10 @@ import SignUpScreen from "./screens/passenger-screens/signup";
 import SingleRideScreen from "./screens/passenger-screens/singleride";
 import WalletScreen from "./screens/passenger-screens/wallet";
 import ChooseCarpool from "./screens/passenger-screens/ChooseCarpool";
+import AddCard from "./screens/passenger-screens/AddCard";
+import PaymentScreen from "./screens/passenger-screens/payment";
+import RidePaymentScreen from "./screens/passenger-screens/RidePayment";
+import CarpoolOngoingRideScreen from "./screens/passenger-screens/ongoing_carpool";
 // Driver Screens
 import RideRequests from "./screens/driver-screens/RideRequests";
 import RidePage from "./screens/driver-screens/RidePage";
@@ -40,62 +45,73 @@ import RideHistory from "./screens/driver-screens/RideHistory";
 import CarpoolRequests from "./screens/driver-screens/CarpoolRequests";
 import CarpoolRideDetail from "./screens/driver-screens/CarpoolRideDetail";
 import VehicleDetails from "./screens/driver-screens/VehicleDetails";
-import { DriverProvider } from "./context/DriverContext";
+import ContactUs from "./screens/driver-screens/ContactUs";
 
 const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
 
 function DriverDrawer({ route }) {
-  const { driverDetails } = route.params
+  const { driverDetails } = route.params || {};
   return (
     <DriverProvider initialData={driverDetails || {}}>
-    <Drawer.Navigator
-      drawerType="slide"
-      overlayColor="rgba(0, 0, 0, 0.5)"
-      // drawerStyle={styles.drawerStyles}
-      drawerContentOptions={{
-        activeBackgroundColor: globalColors.violetBlue,
-        activeTintColor: "#fff",
-        inactiveTintColor: "#999",
-        // itemStyle: styles.drawerItemStyle,
-        // labelStyle: styles.drawerLabelStyle,
-      }}
-      sceneContainerStyle={{ backgroundColor: globalColors.violetBlue }}
-    >
-      <Drawer.Screen
-        name="mainpage"
-        component={RidePage}
-        options={{
-          headerStyle: { backgroundColor: globalColors.violetBlue },
-          headerTintColor: "#ffffff",
-          headerTitle: "Rides",
-          headerTitleStyle: { fontWeight: "bold" },
-          drawerLabel: "Rides",
+      <Drawer.Navigator
+        drawerType="slide"
+        overlayColor="rgba(0, 0, 0, 0.5)"
+        // drawerStyle={styles.drawerStyles}
+        drawerContentOptions={{
+          activeBackgroundColor: globalColors.violetBlue,
+          activeTintColor: "#fff",
+          inactiveTintColor: "#999",
+          // itemStyle: styles.drawerItemStyle,
+          // labelStyle: styles.drawerLabelStyle,
         }}
-      />
-      <Drawer.Screen
-        name="history"
-        component={RideHistory}
-        options={{
-          headerStyle: { backgroundColor: globalColors.violetBlue },
-          headerTintColor: "#ffffff",
-          headerTitle: "Rides History",
-          headerTitleStyle: { fontWeight: "bold" },
-          drawerLabel: "Rides History",
-        }}
-      />
-      <Drawer.Screen
-        name="settings"
-        component={Settings}
-        options={{
-          headerStyle: { backgroundColor: globalColors.violetBlue },
-          headerTintColor: "#ffffff",
-          headerTitle: "Account Settings",
-          headerTitleStyle: { fontWeight: "bold" },
-          drawerLabel: "Account Settings",
-        }}
-      />
-    </Drawer.Navigator>
+        sceneContainerStyle={{ backgroundColor: globalColors.violetBlue }}
+      >
+        <Drawer.Screen
+          name="mainpage"
+          component={RidePage}
+          options={{
+            headerStyle: { backgroundColor: globalColors.violetBlue },
+            headerTintColor: "#ffffff",
+            headerTitle: "Rides",
+            headerTitleStyle: { fontWeight: "bold" },
+            drawerLabel: "Rides",
+          }}
+        />
+        <Drawer.Screen
+          name="history"
+          component={RideHistory}
+          options={{
+            headerStyle: { backgroundColor: globalColors.violetBlue },
+            headerTintColor: "#ffffff",
+            headerTitle: "Rides History",
+            headerTitleStyle: { fontWeight: "bold" },
+            drawerLabel: "Rides History",
+          }}
+        />
+        <Drawer.Screen
+          name="settings"
+          component={Settings}
+          options={{
+            headerStyle: { backgroundColor: globalColors.violetBlue },
+            headerTintColor: "#ffffff",
+            headerTitle: "Account Settings",
+            headerTitleStyle: { fontWeight: "bold" },
+            drawerLabel: "Account Settings",
+          }}
+        />
+        <Drawer.Screen
+          name="contactus"
+          component={ContactUs}
+          options={{
+            headerStyle: { backgroundColor: globalColors.violetBlue },
+            headerTintColor: "#ffffff",
+            headerTitle: "Contact Us",
+            headerTitleStyle: { fontWeight: "bold" },
+            drawerLabel: "Contact Us",
+          }}
+        />
+      </Drawer.Navigator>
     </DriverProvider>
   );
 }
@@ -103,6 +119,7 @@ function DriverDrawer({ route }) {
 export default function App() {
   const [sessionToken, setSessionToken] = useState(undefined);
   const [isLoading, setisLoading] = useState(false);
+
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -122,6 +139,7 @@ export default function App() {
     };
     checkAuth();
   }, [sessionToken]);
+
   if (isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -129,6 +147,7 @@ export default function App() {
       </View>
     );
   }
+
   return (
     <>
       <NavigationContainer onReady={() => console.log("Navigation Ready")}>
@@ -233,8 +252,27 @@ export default function App() {
             component={WalletScreen}
             options={{ headerShown: false }}
           />
+          <Stack.Screen
+            name="Add Card"
+            component={AddCard}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Payment"
+            component={PaymentScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Ride Payment"
+            component={RidePaymentScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="carpool_ongoing"
+            component={CarpoolOngoingRideScreen}
+            options={{ headerShown: false }}
+          />
           {/* Driver Screens */}
-
           <Stack.Screen
             name="Driver"
             component={DriverRegisteration}

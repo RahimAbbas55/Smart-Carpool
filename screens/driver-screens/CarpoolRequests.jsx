@@ -1,22 +1,30 @@
 import { useEffect, useState } from "react";
 import { View, Text, StyleSheet, FlatList, Alert } from "react-native";
 import { globalColors } from "../../constants/colors";
-import { collection, getFirestore, onSnapshot , doc, getDoc, updateDoc } from "firebase/firestore";
+import {
+  collection,
+  getFirestore,
+  onSnapshot,
+  doc,
+  getDoc,
+  updateDoc,
+  setDoc,
+  deleteDoc,
+} from "firebase/firestore";
 import { app } from "../../data-service/firebase";
 import CarpoolRideCard from "../../components/CarpoolRideCard";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export default function CarpoolRequests({ navigation }) {
+export default function CarpoolRequests({ navigation, route }) {
   const [requests, setRequests] = useState([]);
   const db = getFirestore(app);
   const [driverLocation, setDriverLocation] = useState(null);
+  const { data } = route.params || {};
 
   useEffect(() => {
-    // Fetch and set driver location from AsyncStorage
     async function fetchDriverLocation() {
       const latitude = await AsyncStorage.getItem("Driver_Latitude");
       const longitude = await AsyncStorage.getItem("Driver_Longitude");
-
       if (latitude && longitude) {
         setDriverLocation({
           latitude: parseFloat(latitude),
@@ -25,8 +33,11 @@ export default function CarpoolRequests({ navigation }) {
       }
     }
     fetchDriverLocation();
-  }, []); 
+  }, []);
+
   useEffect(() => {
+    if (!driverLocation) return;
+
     const unsubscribe = onSnapshot(
       collection(db, "CarpoolRides"),
       (snapshot) => {
@@ -34,7 +45,7 @@ export default function CarpoolRequests({ navigation }) {
           _id: doc.id,
           ...doc.data(),
         }));
-  
+
         const filteredRequests = allRequests.filter(
           (ride) =>
             (ride.rideStatus === "pending" || ride.rideStatus === "ongoing") &&
@@ -48,10 +59,9 @@ export default function CarpoolRequests({ navigation }) {
         setRequests(filteredRequests);
       }
     );
-  
+
     return () => unsubscribe();
   }, [driverLocation]);
-  
 
   function backNavigation() {
     navigation.goBack();
@@ -60,36 +70,40 @@ export default function CarpoolRequests({ navigation }) {
   async function acceptNavigation(id) {
     try {
       const rideRef = doc(db, "CarpoolRides", id);
-      const rideId = rideRef.id;
       const rideSnap = await getDoc(rideRef);
-  
+
       if (!rideSnap.exists()) {
-        console.log("Ride not found!");
+        console.log("❌ Ride not found!");
         return;
       }
-  
+
       const rideData = rideSnap.data();
       const maxCapacity = 4;
-  
+
       if (rideData.currentPassengers >= maxCapacity) {
-        console.log("Ride is already full!");
+        console.log("⚠️ Ride is already full!");
         return;
       }
-  
-      await updateDoc(rideRef, {
+
+      // Move ride to AcceptedCarpoolRides
+      const acceptedRideRef = doc(db, "AcceptedCarpoolRides", id);
+      await setDoc(acceptedRideRef, {
+        ...rideData,
         rideStatus: "ongoing",
-        currentPassengers: rideData.additionalPassengers + 1,
-        // Optionally add driver details
-        selectedDriver: {
-          driverId: "your-driver-id", // Replace with actual driver ID
-          driverName: "Your Driver Name", // Replace with actual name
-        },
+        driverAccepted: true,
+        carType: data?.carType,
+        driverId: data?.id,
+        driverPhone: data?.driverPhone,
+        driverFirstName: data?.firstName,
+        driverLastName: data?.lastName,
+        licensePlate: data?.licensePlate,
+        vehicle: data?.vehicle,
+        vehicleType: data?.vehicleType,
       });
-  
       Alert.alert("Ride accepted successfully!");
-      navigation.navigate('carpoolridedetails' , { data : rideId})
+      navigation.navigate("carpoolridedetails", { data: id });
     } catch (error) {
-      console.error("Error accepting ride:", error);
+      console.error("❌ Error accepting ride:", error);
     }
   }
 

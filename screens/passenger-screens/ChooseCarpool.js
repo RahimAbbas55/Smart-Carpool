@@ -24,10 +24,9 @@ import {
 import { app } from "../../data-service/firebase";
 import Button from "../../components/Button";
 
-// Haversine formula to calculate distance between two lat/lon points
 const getDistance = (lat1, lon1, lat2, lon2) => {
   const toRad = (value) => (value * Math.PI) / 180;
-  const R = 6371; // Radius of Earth in km
+  const R = 6371;
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
   const a =
@@ -37,7 +36,7 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c; // Distance in km
+  return R * c;
 };
 
 const RideRequestCard = ({ data, onAccept, onDecline, isWaitingForDriver }) => (
@@ -93,19 +92,60 @@ const RideRequestCard = ({ data, onAccept, onDecline, isWaitingForDriver }) => (
 const ChooseCarpool = ({ navigation, route }) => {
   const [rideData, setRideData] = useState(route.params.rideData || null);
   const [isWaitingForDriver, setIsWaitingForDriver] = useState(true);
+  const rideId = rideData?.id;
   const db = getFirestore(app);
 
   useEffect(() => {
     findMatchingRide();
   }, []);
 
+  useEffect(() => {
+    if (!rideId) return;
+
+    const rideRef = doc(db, "AcceptedCarpoolRides", rideId);
+
+    const unsubscribe = onSnapshot(rideRef, (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        const updatedRide = docSnapshot.data();
+        console.log(
+          "🔥 Firestore Snapshot Triggered! Updated Ride:",
+          updatedRide
+        );
+
+        setRideData(updatedRide);
+
+        if (updatedRide.driverAccepted) {
+          Alert.alert(
+            "Driver Accepted!",
+            "Your ride has been accepted by the driver.",
+            [
+              {
+                text: "OK",
+                onPress: () =>
+                  navigation.navigate("carpool_ongoing", { rideData: updatedRide }),
+              },
+            ]
+          );
+        }
+      } else {
+        console.log("❌ Ride not found in AcceptedCarpoolRides.");
+      }
+    });
+
+    return () => unsubscribe();
+  }, [rideId]);
+
   // Function to find an existing carpool ride
   const findMatchingRide = async () => {
     try {
+      const db = getFirestore(app);
+
+      // 1️⃣ Search for an existing ride within 5km in AcceptedCarpoolRides
       const q = query(
-        collection(db, "CarpoolRides"),
-        where("rideStatus", "==", "pending")
+        collection(db, "AcceptedCarpoolRides"),
+        where("rideStatus", "==", "ongoing")
       );
+
       const querySnapshot = await getDocs(q);
       let matchedRide = null;
 
@@ -114,8 +154,8 @@ const ChooseCarpool = ({ navigation, route }) => {
         const distance = getDistance(
           ride.dropoffLatitude,
           ride.dropoffLongitude,
-          rideData.passengerCurrentLocationLatitude,
-          rideData.passengerCurrentLocationLongitude
+          rideData.dropoffLatitude,
+          rideData.dropoffLongitude
         );
 
         if (distance < 5 && ride.passengerId.length < 4) {
@@ -124,28 +164,36 @@ const ChooseCarpool = ({ navigation, route }) => {
       });
 
       if (matchedRide) {
-        // Update the ride data state to reflect the existing ride
-        setRideData(matchedRide);
+        console.log("🚗 Found an existing ride! Adding passenger...");
 
-        // Add the new passenger to the existing ride
-        const rideRef = doc(db, "CarpoolRides", matchedRide.id);
+        const rideRef = doc(db, "AcceptedCarpoolRides", matchedRide.id);
         await updateDoc(rideRef, {
-          passengerId: [...matchedRide.passengerId, rideData.passengerId[0]],
-          passengerName: [...matchedRide.passengerName, rideData.passengerName[0]],
-          passengerPhone: [...matchedRide.passengerPhone, rideData.passengerPhone[0]],
-          additionalPassengers: matchedRide.additionalPassengers + rideData.additionalPassengers,
+          passengerId: arrayUnion(rideData.id),
+          passengerName: arrayUnion(rideData.name),
+          passengerPhone: arrayUnion(rideData.phone),
+          fare: arrayUnion(rideData.fare),
+          additionalPassengers: matchedRide.additionalPassengers + 1,
         });
-        Alert.alert("Ride Joined!", "You have been added to an existing carpool.");
-      } else {
+
+        Alert.alert("🚗 Matched!", "You have been added to an ongoing ride.");
+        navigation.navigate("OngoingRide", { rideData: matchedRide });
+        return;
+      } 
+      else {
         // Create a new ride request
         const newRide = {
           ...rideData,
           rideStatus: "pending",
+          fare: [rideData.fare],
+          additionalPassengers: rideData.additionalPassengers + 1
         };
         const docRef = await addDoc(collection(db, "CarpoolRides"), newRide);
         newRide.id = docRef.id;
         setRideData(newRide);
-        Alert.alert("New Ride Created!", "No existing ride found. A new ride request has been created.");
+        Alert.alert(
+          "New Ride Created!",
+          "No existing ride found. A new ride request has been created."
+        );
       }
     } catch (error) {
       console.error("Error finding or creating ride:", error);

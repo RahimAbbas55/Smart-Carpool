@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View , Platform} from 'react-native';
+import { useState } from 'react';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { getBackendUrl } from '../../constants/ipConfig';
+import DropDownPicker from 'react-native-dropdown-picker'; // Ensure this is installed
 import Button from '../../components/Button';
 import InputField from '../../components/InputField';
 import Logo from '../../components/logo';
@@ -9,6 +11,12 @@ const SignUpScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [gender, setGender] = useState('male'); // Add state for gender
+  const [open, setOpen] = useState(false); // Track whether the dropdown is open
+  const [items, setItems] = useState([
+    { label: 'Male', value: 'male' },
+    { label: 'Female', value: 'female' },
+  ]);
 
   // Validation functions
   const isEmailValid = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -35,9 +43,9 @@ const SignUpScreen = ({ navigation }) => {
       Alert.alert('Validation Error', 'Password must be greater than 8 characters');
       return;
     }
+
     try {
-      const serverURL = Platform.OS === 'android' ? 'http://10.0.2.2:50/api/passenger/signup' : 'http://localhost:50/api/passenger/signup';
-      const response = await fetch( serverURL, {
+      const response = await fetch(`${getBackendUrl()}passenger/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -47,8 +55,10 @@ const SignUpScreen = ({ navigation }) => {
           email: email.trim(),
           phone: phone.trim(),
           password: password,
+          gender: gender, 
         }),
       });
+
       const data = await response.json();
 
       if (response.ok) {
@@ -79,9 +89,24 @@ const SignUpScreen = ({ navigation }) => {
       />
       <InputField placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
 
+      <DropDownPicker
+        open={open} 
+        value={gender}
+        items={items}
+        setOpen={setOpen} 
+        setValue={setGender} 
+        setItems={setItems} 
+        containerStyle={styles.pickerContainer}
+        style={styles.picker}
+        dropDownStyle={styles.dropDownStyle}
+        placeholder="Select Gender"
+        zIndex={3000} 
+        zIndexInverse={1000} 
+      />
+
       <Button text="Sign Up" onPress={handleSignUp} />
 
-      <TouchableOpacity onPress={() => navigation.goBack('Login')}>
+      <TouchableOpacity onPress={() => navigation.navigate('Login')}>
         <Text style={styles.loginText}>Already have an account? Log in</Text>
       </TouchableOpacity>
     </View>
@@ -111,6 +136,19 @@ const styles = StyleSheet.create({
     color: '#4A90E2',
     marginTop: 10,
     fontSize: 14,
+  },
+  pickerContainer: {
+    width: '100%',
+    marginBottom: 20,
+  },
+  picker: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderColor: '#ddd',
+    borderWidth: 1,
+  },
+  dropDownStyle: {
+    backgroundColor: '#fafafa',
   },
 });
 

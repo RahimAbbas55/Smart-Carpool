@@ -10,15 +10,15 @@ import {
   Dimensions,
   PanResponder,
   Alert,
+  Modal, ToastAndroid,
 } from "react-native";
 import MapView, { Marker, Polyline } from "react-native-maps";
 import { globalColors } from "../../constants/colors";
-import * as Location from "expo-location";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../data-service/firebase";
-import { ScrollView } from "react-native-gesture-handler";
-import getCoordinates from "../../data-service/helper";
 import { GOOGLE_API_KEY } from "@env";
+import * as Location from "expo-location";
+import getCoordinates from "../../data-service/helper";
 
 const { height: screenHeight } = Dimensions.get("window");
 
@@ -28,6 +28,8 @@ const CarpoolRideDetail = ({ navigation, route }) => {
   const [rideData, setRideData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [routeCoordinates, setRouteCoordinates] = useState([]); 
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedPassenger, setSelectedPassenger] = useState(null);
   const animatedHeight = useRef(new Animated.Value(screenHeight * 0.5)).current;
   const { data } = route.params;
 
@@ -51,6 +53,7 @@ const CarpoolRideDetail = ({ navigation, route }) => {
       },
     })
   ).current;
+
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
@@ -155,8 +158,32 @@ const CarpoolRideDetail = ({ navigation, route }) => {
   }
 
   function checkNewRequestsHandler() {
-    navigation.navigate("carpool_requests");
+    if (!rideData || !rideData.passengerId || rideData.passengerId.length === 0) {
+      Alert.alert("No new requests available");
+      return;
+    }
+    const newRequest = {
+      passengerId: rideData.passengerId[0],
+      passengerName: rideData.passengerName[0],
+      passengerPhone: rideData.passengerPhone[0],
+      pickup: rideData.pickup,
+      dropoff: rideData.dropoff,
+      fare: rideData.fare[0],
+    };
+    setSelectedPassenger(newRequest);
+    setModalVisible(true);
   }
+
+  function handleAccept() {
+    setModalVisible(false);
+    ToastAndroid.show("Passenger Added to your carpool", ToastAndroid.SHORT);
+  }
+
+  function handleReject() {
+    setModalVisible(false);
+    ToastAndroid.show("Passenger Rejected", ToastAndroid.SHORT);
+  }
+
 
   if (loading || !location) {
     return (
@@ -240,7 +267,7 @@ const CarpoolRideDetail = ({ navigation, route }) => {
             <TextInput
               style={styles.input}
               placeholder="Drop off Location"
-              value={rideData?.requestDestination || "No dropoff address"}
+              value={rideData?.requestDestination || "LUMS, Department of Physics, opposite Sector, Punjab Small Industries Housing Society, Lahore, Pakistan"}
               editable={false}
             />
             <View style={styles.infoRow}>
@@ -275,6 +302,37 @@ const CarpoolRideDetail = ({ navigation, route }) => {
                   </Text>
                 </TouchableOpacity>
             </View>
+            <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalHeading}>New Ride Request</Text>
+            {selectedPassenger && (
+              <>
+                <Text>Passenger ID: {selectedPassenger.passengerId}</Text>
+                <Text>Name: {selectedPassenger.passengerName}</Text>
+                <Text>Phone: {selectedPassenger.passengerPhone}</Text>
+                <Text>Pickup: {selectedPassenger.pickup}</Text>
+                <Text>Dropoff: {selectedPassenger.dropoff}</Text>
+                <Text>Fare: PKR {selectedPassenger.fare}</Text>
+              </>
+            )}
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={[styles.modalButton, styles.accept]} onPress={handleAccept}>
+                <Text style={styles.modalButtonText}>Accept</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalButton, styles.reject]} onPress={handleReject}>
+                <Text style={styles.modalButtonText}>Reject</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
             <TouchableOpacity
               style={[styles.checkRequestsButton, styles.cancel]}
               onPress={returnToHomepage}
@@ -314,7 +372,7 @@ async function getDirections(origin, destination, apiKey) {
       console.error("Error getting directions:", error);
       throw error;
     }
-  }
+}
 function decodePoly(encoded) {
     let poly = [];
     let index = 0,
@@ -355,7 +413,7 @@ function decodePoly(encoded) {
     }
     
     return poly;
-  }
+}
 
 
 const styles = StyleSheet.create({
@@ -437,7 +495,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: "#ccc",
-    fontSize: 14,
+    fontSize: 12,
   },
   infoRow: {
     flexDirection: "row",
@@ -473,6 +531,47 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   cancel: {
+    backgroundColor: "red",
+  },
+  accept: {
+    backgroundColor: "green",
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  modalContent: {
+    width: "80%",
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  modalHeading: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginTop: 15,
+    width: "100%",
+  },
+  modalButton: {
+    flex: 1,
+    padding: 10,
+    marginHorizontal: 5,
+    borderRadius: 5,
+    alignItems: "center",
+  },
+  modalButtonText: {
+    color: "white",
+    fontSize: 16,
+  },
+  reject: {
     backgroundColor: "red",
   },
   accept: {

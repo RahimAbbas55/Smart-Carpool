@@ -3,7 +3,7 @@ import { createContext, useContext, useState } from "react";
 const DriverContext = createContext();
 
 export function DriverProvider({ children, initialData = {} }) {
-  const [driverDetails, setDriverDetails] = useState(initialData);
+  const [driverDetails, setDriverDetails] = useState(initialData)
 
   return (
     <DriverContext.Provider value={{ driverDetails, setDriverDetails }}>

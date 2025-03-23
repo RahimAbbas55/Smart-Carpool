@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   Alert,
   FlatList,
+  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -19,6 +20,7 @@ import RequestRideScreen from "./RequestRideScreen";
 import SettingsScreen from "./settings";
 import WalletScreen from "./wallet";
 import { getDriverdata } from "../../data-service/auth";
+import { getUserData } from '../../data-service/auth';
 
 const pages = [
   { name: "Home", component: RequestRideScreen, icon: "home" },
@@ -38,6 +40,11 @@ const pages = [
 const MenuScreen = ({ navigation, route }) => {
   const { data } = route.params;
   const [driverData, setDriverData] = useState(null);
+  const [userData, setUserData] = useState(null);
+  const [name, setName] = useState('Guest');
+  const [rating, setRating] = useState('');
+  const [imageUrl, setImageUrl]= useState(null);
+
   useEffect(() => {
     const fetchDriver = async () => {
       const id = data?.userId;
@@ -50,6 +57,23 @@ const MenuScreen = ({ navigation, route }) => {
     };
     fetchDriver();
   }, [data?.userId]);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const data = await getUserData();
+        setUserData(data);
+        setName(data?.name || 'Guest');
+        setRating(data?.rating || '');
+        setImageUrl(data?.imageUrl);
+      } catch (error) {
+        console.log('Error fetching user data:', error.message);
+        setName('Guest');
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -92,16 +116,21 @@ const MenuScreen = ({ navigation, route }) => {
     </TouchableOpacity>
   );
 
+
   return (
     <View style={styles.container}>
-      <View style={styles.profileContainer}>
-        <View style={styles.placeholder}>
-          <MaterialIcons name="image" size={40} color="#374151" />
-        </View>
-        <Text style={styles.name}>{data?.name}</Text>
+       <View style={styles.profileContainer}>
+        {imageUrl ? (
+          <Image source={{ uri: imageUrl }} style={styles.profileImage} />
+        ) : (
+          <View style={styles.placeholder}>
+            <MaterialIcons name="image" size={40} color="#374151" />
+          </View>
+        )}
+        <Text style={styles.name}>{name}</Text>
         <View style={styles.ratingContainer}>
           <MaterialIcons name="star" size={20} color="#FFD700" />
-          <Text style={styles.ratingText}>4.5</Text>
+          <Text style={styles.ratingText}>{rating}</Text>
         </View>
       </View>
 
@@ -172,6 +201,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: "#1E40AF",
     marginLeft: 10,
+  },
+  profileImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#E5E7EB',
   },
 });
 export default MenuScreen;

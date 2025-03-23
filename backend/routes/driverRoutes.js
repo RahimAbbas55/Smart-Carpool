@@ -127,4 +127,74 @@ router.get('/getDriverDetails', async (req, res) => {
         });
     }
 });
+
+// update driver details
+router.put('/updateDriver', async (req, res) => {
+    try {
+        const { id, updates } = req.body; // Expecting `id` from the frontend
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ error: "Invalid ID format" });
+        }
+
+        const updatedDriver = await Driver.findByIdAndUpdate(
+            {_id: id},
+            { $set: updates },             
+            { new: true, runValidators: true }
+        );
+
+        if (!updatedDriver) {
+            return res.status(404).json({ error: "Driver not found" });
+        }
+
+        return res.status(200).json({
+            message: "Driver updated successfully",
+            driver: updatedDriver
+        });
+
+    } catch (error) {
+        console.error("Error updating driver:", error);
+        return res.status(500).json({ error: "Failed to update driver", details: error.message });
+    }
+});
+router.post('/updateWallet', async (req, res) => {
+    let { driverId, amount } = req.body;
+    amount = Number(amount);
+  
+    console.log("Request Body:", req.body);
+    console.log("Amount:", amount);
+  
+    if (!driverId || typeof driverId !== 'string' || driverId.length !== 24 || !/^[0-9a-fA-F]{24}$/.test(driverId)) {
+      return res.status(400).json({ message: "Invalid driverId format" });
+    }
+  
+    if (isNaN(amount)) {
+      return res.status(400).json({ message: "Invalid amount value" });
+    }
+  
+    try {
+      const db = mongoose.connection.db;
+      const driversCollection = db.collection('drivers'); 
+  
+      const objectId = new mongoose.Types.ObjectId(driverId);
+  
+      const driver = await driversCollection.findOne({ _id: objectId });
+  
+      if (!driver) {
+        return res.status(404).json({ message: 'Driver not found' });
+      }
+  
+      const newWalletBalance = (driver.wallet || 0) + amount;
+  
+      await driversCollection.updateOne(
+        { _id: objectId },
+        { $set: { wallet: newWalletBalance } }
+      );
+  
+      res.json({ success: true, wallet: newWalletBalance });
+    } catch (error) {
+      console.error("Error updating wallet:", error);
+      res.status(500).json({ message: 'An error occurred while updating the wallet' });
+    }
+  });
 module.exports = router;

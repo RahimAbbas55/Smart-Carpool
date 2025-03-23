@@ -13,17 +13,19 @@ import {
 } from "react-native";
 import MapView, { Marker, Polyline } from "react-native-maps";
 import { globalColors } from "../../constants/colors";
-import * as Location from "expo-location";
 import { doc, getDoc, updateDoc, getFirestore } from "firebase/firestore";
 import { db } from "../../data-service/firebase";
-import getCoordinates from "../../data-service/helper";
 import { GOOGLE_API_KEY } from "@env";
 import { getBackendUrl } from "../../constants/ipConfig";
+import { Linking } from "react-native";
+import * as Location from "expo-location";
+import getCoordinates from "../../data-service/helper";
 import axios from "axios";
+import { ScrollView } from "react-native-gesture-handler";
 
 const { height: screenHeight } = Dimensions.get("window");
 
-const serverURL = getBackendUrl()
+const serverURL = getBackendUrl();
 
 const RideDetails = ({ navigation, route }) => {
   const [location, setLocation] = useState(null);
@@ -62,7 +64,7 @@ const RideDetails = ({ navigation, route }) => {
         const rideDocSnap = await getDoc(rideDocRef);
 
         if (rideDocSnap.exists()) {
-          console.log("Ride data:", rideDocSnap.data());
+          // console.log("Ride data:", rideDocSnap.data());
           const rideDataObj = rideDocSnap.data();
           setRideData(rideDataObj);
 
@@ -130,17 +132,17 @@ const RideDetails = ({ navigation, route }) => {
           origin
         )}&destination=${encodeURIComponent(destination)}&key=${apiKey}`
       );
-      
+
       if (!response.ok) {
         throw new Error("Failed to fetch directions");
       }
-      
+
       const data = await response.json();
-      
+
       if (data.status !== "OK") {
         throw new Error(`Directions request failed: ${data.status}`);
       }
-      
+
       // Decode the polyline points from the response
       const points = data.routes[0].overview_polyline.points;
       return decodePoly(points);
@@ -152,45 +154,54 @@ const RideDetails = ({ navigation, route }) => {
   function decodePoly(encoded) {
     let poly = [];
     let index = 0,
-    len = encoded.length;
+      len = encoded.length;
     let lat = 0,
-    lng = 0;
-    
+      lng = 0;
+
     while (index < len) {
       let b,
-      shift = 0,
-      result = 0;
-      
+        shift = 0,
+        result = 0;
+
       do {
         b = encoded.charCodeAt(index++) - 63;
         result |= (b & 0x1f) << shift;
         shift += 5;
       } while (b >= 0x20);
-      
+
       let dlat = result & 1 ? ~(result >> 1) : result >> 1;
       lat += dlat;
-      
+
       shift = 0;
       result = 0;
-      
+
       do {
         b = encoded.charCodeAt(index++) - 63;
         result |= (b & 0x1f) << shift;
         shift += 5;
       } while (b >= 0x20);
-      
+
       let dlng = result & 1 ? ~(result >> 1) : result >> 1;
       lng += dlng;
-      
+
       poly.push({
         latitude: lat / 1e5,
         longitude: lng / 1e5,
       });
     }
-    
+
     return poly;
   }
-  
+  const openGoogleMaps = () => {
+    if (rideData?.requestDestination) {
+      const destination = encodeURIComponent(rideData.requestDestination);
+      const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
+      Linking.openURL(googleMapsUrl);
+    } else {
+      Alert.alert("Error", "Destination not available");
+    }
+  };
+
   // Navigation Function
   function returnToHomepage() {
     const cancelRide = async () => {
@@ -200,51 +211,54 @@ const RideDetails = ({ navigation, route }) => {
           status: "cancelled",
           cancelledAt: new Date(),
         });
-        Alert.alert('Ride Cancelled Successfully!');
+        Alert.alert("Ride Cancelled Successfully!");
         navigation.replace("drawer");
       } catch (error) {
         console.error("Driver: Error cancelling ride:", error);
       }
-    }
+    };
     cancelRide();
   }
 
   function finishRideHandler(rideId) {
     const updateRideStatus = async () => {
-        try {
-            const rideDocRef = doc(db, "Rides", rideId);
-            const rideSnapshot = await getDoc(rideDocRef);
-            if (!rideSnapshot.exists()) {
-                throw new Error("Ride not found!");
-            }
-
-            const updatedRide = {
-                ...rideSnapshot.data(),
-                status: "completed",
-                completedAt: new Date(),
-            };
-
-            // Update the ride in Firestore
-            await updateDoc(rideDocRef, {
-                status: "completed",
-                completedAt: updatedRide.completedAt,
-            });
-            // Send a POST request to the API
-            const response = await axios.post(`${serverURL}singleRide/addDetailToDB`, updatedRide);
-
-            if (response.status === 201) {
-                Alert.alert("Ride Finished Successfully!");
-                navigation.replace("Home");
-            } else {
-                throw new Error("Failed to save ride to the server");
-            }
-        } catch (error) {
-            Alert.alert("Error", error.message);
+      try {
+        const rideDocRef = doc(db, "Rides", rideId);
+        const rideSnapshot = await getDoc(rideDocRef);
+        if (!rideSnapshot.exists()) {
+          throw new Error("Ride not found!");
         }
+
+        const updatedRide = {
+          ...rideSnapshot.data(),
+          status: "completed",
+          completedAt: new Date(),
+        };
+
+        // Update the ride in Firestore
+        await updateDoc(rideDocRef, {
+          status: "completed",
+          completedAt: updatedRide.completedAt,
+        });
+        // Send a POST request to the API
+        const response = await axios.post(
+          `${serverURL}singleRide/addDetailToDB`,
+          updatedRide
+        );
+
+        if (response.status === 201) {
+          Alert.alert("Ride Finished Successfully!");
+          navigation.replace("Home");
+        } else {
+          throw new Error("Failed to save ride to the server");
+        }
+      } catch (error) {
+        Alert.alert("Error", error.message);
+      }
     };
 
     updateRideStatus();
-}
+  }
 
   function checkNewRequestsHandler() {
     navigation.navigate("carpool_requests");
@@ -315,14 +329,17 @@ const RideDetails = ({ navigation, route }) => {
         )}
       </MapView>
 
-      
       <Animated.View
         style={[styles.detailsContainer, { height: animatedHeight }]}
       >
-        <View contentContainerStyle={styles.scrollContent}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <TouchableOpacity style={styles.mapButton} onPress={openGoogleMaps}>
+        <Text style={styles.mapButtonText}>Map</Text>
+      </TouchableOpacity>
           <View style={styles.card}>
-            <Text style={styles.heading}>{rideData?.requestType === 'single' ? 'Single' : "Carpool" }
-            {" "}Ride Details
+            <Text style={styles.heading}>
+              {rideData?.requestType === "single" ? "Single" : "Carpool"} Ride
+              Details
             </Text>
             <TextInput
               style={styles.input}
@@ -381,7 +398,7 @@ const RideDetails = ({ navigation, route }) => {
               <Text style={styles.checkRequestsText}>Cancel Ride</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </ScrollView>
       </Animated.View>
     </View>
   );
@@ -506,6 +523,24 @@ const styles = StyleSheet.create({
   },
   accept: {
     backgroundColor: "green",
+  },
+  mapButton: {
+    position: "absolute",
+    top: 20,
+    right: 20,
+    backgroundColor: "#365df2",
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    zIndex: 9999, // Ensure it's above all elements
+    elevation: 10, // Helps on Android
+    borderWidth: 2,
+    borderColor: "black",
+  },
+  mapButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });
 

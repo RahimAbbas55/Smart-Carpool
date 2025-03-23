@@ -89,6 +89,11 @@ const driverSchema = new mongoose.Schema({
     brand: {
         type: String,
         required: [true, 'Brand is required']
+    },
+    wallet: {
+        type: Number,
+        required: false,
+        default: 0
     }
 });
 

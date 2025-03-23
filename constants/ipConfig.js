@@ -20,3 +20,22 @@ export const getBackendUrl = () => {
       return 'https://api.yourdomain.com/api/';
     }
 };
+
+export const getBaseUrl = () => {
+  if (__DEV__) {
+    if (Constants.expoConfig.hostUri) {
+      const localIp = Constants.expoConfig.hostUri.split(':')[0];
+      if (Device.isDevice) {
+        return `http://${localIp}:50/`;
+      } else {
+        if (Platform.OS === 'android') {
+          return 'http://10.0.2.2:50/'; 
+        } else {
+          return 'http://localhost:50/';
+        }
+      }
+    }
+  } else {
+    return 'https://api.yourdomain.com/';
+  }
+}

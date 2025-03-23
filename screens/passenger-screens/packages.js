@@ -1,55 +1,202 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import React, { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { getUserData } from '../../data-service/auth';
+import { getBackendUrl } from '../../constants/ipConfig';
 
 const PackagesScreen = () => {
   const navigation = useNavigation();
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const [packages, setPackages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [userData, setUserData] = useState(null);
+  const [userId, setUserId] = useState('');
+  const [email, setEmail] = useState('');
+  const [wallet, setWallet] = useState(0);
+  const [amount, setAmount] = useState(0);
   const [currentSubscription, setCurrentSubscription] = useState({
-    planName: '',
-    validity: '',
+    hasSubscription: false,
+    subscription: {
+      planName: '',
+      validity: ''
+    }
   });
-  const [isPaymentCompleted, setIsPaymentCompleted] = useState(false);
 
-  const handleSelectPlan = (plan) => {
-    setSelectedPlan(plan);  // Select the plan, but do not update subscription info yet
-  };
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const data = await getUserData();
+        setUserData(data);
+        setUserId(data?.userId);
+        setWallet(data?.wallet || 0);
+        setEmail(data?.email || '');
+        // console.log("Set User ID:", userId);
+      } catch (error) {
+        console.error('Error fetching user data:', error.message);
+      }
+    };
+    fetchUser();
+  }, []);
+  useEffect(() => {
+    const fetchPackages = async () => {
+      try {
+        const response = await fetch(`${getBackendUrl()}packages`);
+        if (!response.ok) throw new Error('Failed to load packages');
 
-  const calculateValidity = (planType) => {
+        const data = await response.json();
+        setPackages(data);
+      } catch (error) {
+        console.error('Error fetching packages:', error);
+        Alert.alert('Error', 'Failed to load packages.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPackages();
+  }, []);
+
+  useEffect(() => {
+    if (!userId) {
+      console.log(" Waiting for userId to be set...");
+      return;
+    }
+    const fetchSubscription = async () => {
+      if (!userId) {
+        console.warn("UserId is missing! API call skipped.");
+        return;
+      }
+
+      const apiUrl = `${getBackendUrl()}subscription/currentSubscription/${userId}`;
+      try {
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        if (response.ok && data.hasSubscription) {
+          setCurrentSubscription(data);
+          console.log("current sub", currentSubscription);
+        }
+      } catch (error) {
+        console.error(' Error fetching subscription:', error);
+      }
+    };
+
+    fetchSubscription();
+  }, [userId]);
+
+  const handleSelectPlan = (plan) => setSelectedPlan(plan);
+
+  const calculateValidity = (duration) => {
+    console.log("calculateValidity called with:", duration);
+
     const currentDate = new Date();
-    const startDate = currentDate.toISOString().split('T')[0]; // Format: YYYY-MM-DD
-    const endDate = new Date(
-      currentDate.setDate(currentDate.getDate() + (planType === 'Weekly' ? 7 : 30))
-    )
-      .toISOString()
-      .split('T')[0];
+    const startDate = currentDate.toISOString().split('T')[0];
 
+    let durationDays = 0;
+
+    if (duration.includes("week")) {
+      durationDays = parseInt(duration) * 7;
+    } else if (duration.includes("month")) {
+      durationDays = parseInt(duration) * 30;
+    } else {
+      console.error("Unknown duration format:", duration);
+      return { startDate: null, endDate: null };
+    }
+
+    const endDateObj = new Date();
+    endDateObj.setDate(currentDate.getDate() + durationDays);
+    const endDate = endDateObj.toISOString().split('T')[0];
+
+    console.log("Returning Validity:", startDate, endDate);
     return { startDate, endDate };
   };
 
-  const handleProceedToPayment = () => {
+  const handleProceedToPayment = async () => {
+    console.log("Proceed button clicked");
+    console.log("Wallet balance:", wallet);
+
+
     if (!selectedPlan) {
       Alert.alert('Error', 'Please select a subscription plan before proceeding.');
       return;
     }
+    console.log("Selected Plan:", selectedPlan);
 
-    // Update subscription info after payment is processed
-    const { startDate, endDate } = calculateValidity(selectedPlan);
-    setCurrentSubscription({
-      planName: selectedPlan,
-      validity: `${startDate} - ${endDate}`,
+    if (currentSubscription.hasSubscription) {
+      alert('You already have an active subscription.');
+      return;
+    }
+
+    if (wallet < selectedPlan.fee) {
+      Alert.alert('Insufficient Balance', 'You do not have enough balance in your wallet.');
+      return;
+    }
+    console.log("Selected Plan Fee:", selectedPlan.fee);
+    console.log("Wallet Balance Check:", wallet >= selectedPlan.fee);
+
+
+    const { startDate, endDate } = calculateValidity(selectedPlan.duration);
+    console.log("Calculated Validity:", startDate, endDate);
+
+
+    console.log('Sending subscription request:', {
+      userId,
+      packageName: selectedPlan.name,
+      validFrom: startDate,
+      validTo: endDate,
+      paymentStatus: 'completed',
     });
 
-    // Simulate payment success
-    setIsPaymentCompleted(true); // Mark payment as completed
-    Alert.alert(
-      'Payment Success',
-      `You have successfully subscribed to the ${selectedPlan} plan. Validity: ${currentSubscription.validity}`,
-      [{ text: 'OK' }]
-    );
+    console.log("Attempting to send API request...");
+    try {
+      console.log("Sending request now...");
+      const response = await fetch(`${getBackendUrl()}subscription`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          packageName: selectedPlan.name,
+          validFrom: startDate,
+          validTo: endDate,
+          paymentStatus: 'completed',
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to subscribe');
+
+      const amountToDeduct = Number(selectedPlan.fee);
+      const updatedWallet = Number(wallet) - amountToDeduct;
+
+      console.log("Updated wallet:", updatedWallet);
+      console.log("Amount to deduct:", amountToDeduct);
+
+      if (isNaN(updatedWallet) || isNaN(amountToDeduct)) {
+        console.error("Invalid wallet or fee value! Aborting API request.");
+        return;
+      }
+
+      await fetch(`${getBackendUrl()}passenger/updateWallet`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, amount: -amountToDeduct })
+      });
+
+      setWallet(updatedWallet);
+      setCurrentSubscription({ planName: selectedPlan.name, validity: `${startDate} - ${endDate}` });
+
+      Alert.alert('Subscription Successful', `You have subscribed to ${selectedPlan.name}. Validity: ${startDate} - ${endDate}`);
+    } catch (error) {
+      Alert.alert('Subscription Failed', error.message);
+    }
   };
 
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.loadingText}>Loading packages...</Text>
+      </View>
+    );
+  }
+  console.log(currentSubscription)
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -61,50 +208,30 @@ const PackagesScreen = () => {
 
       <View style={styles.packageInfoBox}>
         <Text style={styles.infoHeader}>Current Subscription</Text>
-        <Text style={styles.infoDetails}>
-          Package Name: {currentSubscription.planName || 'N/A'}
-        </Text>
-        <Text style={styles.infoDetails}>
-          Validity: {currentSubscription.validity || 'N/A'}
-        </Text>
+        <Text style={styles.infoDetails}>Package Name:{currentSubscription.subscription.planName}</Text>
+        <Text style={styles.infoDetails}>Validity:{currentSubscription.subscription.validity} </Text>
       </View>
 
       <ScrollView>
         <Text style={styles.sectionHeader}>Choose Your Plan</Text>
 
-        <TouchableOpacity
-          style={[
-            styles.packageCard,
-            selectedPlan === 'Weekly' && styles.selectedPackageCard,
-          ]}
-          onPress={() => handleSelectPlan('Weekly')}
-        >
-          <Text style={styles.packageTitle}>Weekly Plan</Text>
-          <Text style={styles.packageDetails}>- 15% discount on rides</Text>
-          <Text style={styles.packageDetails}>- Valid for 7 days</Text>
-          <Text style={styles.packageDetails}>- Fee: 700</Text>
-        </TouchableOpacity>
+        {packages.map((plan, index) => (
+          <TouchableOpacity
+            key={index}
+            style={[styles.packageCard, selectedPlan === plan && styles.selectedPackageCard]}
+            onPress={() => handleSelectPlan(plan)}
+          >
+            <Text style={styles.packageTitle}>{plan.name} Plan</Text>
+            <Text style={styles.packageDetails}>- {plan.discount}% discount on rides</Text>
+            <Text style={styles.packageDetails}>- Valid for {plan.duration} </Text>
+            <Text style={styles.packageDetails}>- Fee: PKR {plan.fee}</Text>
+          </TouchableOpacity>
+        ))}
 
         <TouchableOpacity
-          style={[
-            styles.packageCard,
-            selectedPlan === 'Monthly' && styles.selectedPackageCard,
-          ]}
-          onPress={() => handleSelectPlan('Monthly')}
-        >
-          <Text style={styles.packageTitle}>Monthly Plan</Text>
-          <Text style={styles.packageDetails}>- 25% discount on rides</Text>
-          <Text style={styles.packageDetails}>- Valid for 30 days</Text>
-          <Text style={styles.packageDetails}>- Fee: 2500</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.proceedButton,
-            isPaymentCompleted ? styles.disabledButton : null
-          ]}
+          style={[styles.proceedButton, currentSubscription && styles.disabledButton]}
           onPress={handleProceedToPayment}
-          disabled={isPaymentCompleted} // Disable the button after payment
+          // disabled={!!currentSubscription.subscription}
         >
           <Text style={styles.proceedButtonText}>Proceed to Payment</Text>
         </TouchableOpacity>
@@ -114,101 +241,20 @@ const PackagesScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#EDE9F6',
-    paddingHorizontal: 15,
-    paddingTop: 10,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 20,
-    borderWidth: 1,
-    height: 40,
-    backgroundColor: '#3B3B98',
-    borderRadius: 6,
-  },
-  backButton: {
-    marginRight: 12,
-  },
-  headerText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#EDE9F6',
-    marginLeft: 115,
-  },
-  packageInfoBox: {
-    backgroundColor: '#E5E7EB',
-    padding: 16,
-    borderRadius: 10,
-    marginBottom: 20,
-  },
-  infoHeader: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  infoDetails: {
-    fontSize: 14,
-    color: '#374151',
-    marginBottom: 5,
-  },
-  sectionHeader: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 25,
-    marginTop: 10,
-    color: '#1E40AF',
-    textAlign: 'center',
-  },
-  packageCard: {
-    backgroundColor: '#F3F4F6',
-    padding: 20,
-    borderRadius: 12,
-    marginBottom: 20,
-    alignItems: 'center',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-  },
-  selectedPackageCard: {
-    backgroundColor: '#BFDBFE',
-    borderWidth: 2,
-    borderColor: '#1E40AF',
-    elevation: 7,
-  },
-  packageTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#1E40AF',
-  },
-  packageDetails: {
-    fontSize: 16,
-    color: '#374151',
-    marginBottom: 5,
-  },
-  proceedButton: {
-    backgroundColor: '#1E40AF',
-    padding: 16,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  proceedButtonText: {
-    fontSize: 18,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-  },
-  disabledButton: {
-    backgroundColor: '#A5B4FC', 
-  },
+  container: { flex: 1, backgroundColor: '#EDE9F6', paddingHorizontal: 15, paddingTop: 10 },
+  header: { flexDirection: 'row', alignItems: 'center', marginTop: 20, marginBottom: 20, height: 40, backgroundColor: '#3B3B98', borderRadius: 6 },
+  backButton: { marginLeft: 12 },
+  headerText: { fontSize: 20, fontWeight: 'bold', color: '#EDE9F6', marginLeft: 110 },
+  packageInfoBox: { backgroundColor: '#E5E7EB', padding: 16, borderRadius: 10, marginBottom: 20 },
+  infoHeader: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
+  infoDetails: { fontSize: 14, color: '#374151', marginBottom: 5 },
+  sectionHeader: { fontSize: 22, fontWeight: 'bold', marginBottom: 25, color: '#1E40AF', textAlign: 'center' },
+  packageCard: { backgroundColor: '#F3F4F6', padding: 20, borderRadius: 12, marginBottom: 20, alignItems: 'center', elevation: 5, borderWidth: 1, borderColor: '#D1D5DB' },
+  selectedPackageCard: { backgroundColor: '#BFDBFE', borderWidth: 2, borderColor: '#1E40AF' },
+  proceedButton: { backgroundColor: '#1E40AF', padding: 16, borderRadius: 10, alignItems: 'center', marginTop: 20 },
+  proceedButtonText: { fontSize: 18, color: '#FFFFFF', fontWeight: 'bold' },
+  disabledButton: { backgroundColor: '#A5B4FC' },
+  loadingText: { fontSize: 18, color: '#374151', textAlign: 'center', marginTop: 20 },
 });
 
 export default PackagesScreen;

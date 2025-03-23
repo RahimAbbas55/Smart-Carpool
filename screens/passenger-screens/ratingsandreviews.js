@@ -1,33 +1,68 @@
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from '@react-navigation/native';
-import React from "react";
-import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { getUserData } from '../../data-service/auth';
+import { getBackendUrl } from "../../constants/ipConfig";
 
 const RatingsAndReviewsScreen = () => {
     const navigation = useNavigation();
-    const driversRated = [
-        {
-            id: "1",
-            name: "Jane Doe",
-            rating: 4.5,
-            review: "The car was clean and comfortable. The driver was punctual and polite.",
-        },
-        {
-            id: "2",
-            name: "John Smith",
-            rating: 4,
-            review: "The driver was friendly, but the ride felt a bit rushed at times.",
-        },
-    ];
+    const [passengerId, setpassengerId] = useState(null);
+    const [reviews, setReviews] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [rating, setRating] = useState('');
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const data = await getUserData();
+                setpassengerId(data?.userId || "");
+                setRating(data?.rating || '');
+            } catch (error) {
+                console.log('Error fetching user data:', error.message);
+            }
+        };
+
+        fetchUser();
+    }, []);
+
+    const ratepercent = (rating / 5) * 100;
+
+    useEffect(() => {
+        if (!passengerId) return;
+
+        const fetchRatings = async () => {
+            if (!passengerId) return;
+
+            try {
+                const response = await fetch(`${getBackendUrl()}passengerRating/${passengerId}`);
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.log("Error fetching ratings:", errorData.message);
+                    return;
+                }
+
+                const data = await response.json();
+                console.log("Fetched Ratings:", data);
+                setReviews(data);
+            } catch (error) {
+                console.log("Error fetching ratings:", error.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+
+        fetchRatings();
+    }, [passengerId]);
 
     const renderDriver = ({ item }) => (
         <View style={styles.reviewCard}>
             <View style={styles.profileContainer}>
-                <Image
-                    style={styles.profileImage}
-                />
+                <Image style={styles.profileImage} />
                 <View style={styles.profileText}>
-                    <Text style={styles.driverName}>{item.name}</Text>
+                    <Text style={styles.driverName}>{item.driverName}</Text>
                     <View style={styles.ratingContainer}>
                         {Array.from({ length: 5 }).map((_, index) => (
                             <FontAwesome
@@ -54,15 +89,21 @@ const RatingsAndReviewsScreen = () => {
             </View>
             <View style={styles.summarySection}>
                 <Text style={styles.summaryTitle}>Passenger Rating</Text>
-                <Text style={styles.overallRating}>4.5</Text>
-                <Text style={styles.recommended}>88% Recommended</Text>
+                <Text style={styles.overallRating}>{rating}</Text>
+                <Text style={styles.recommended}>{ratepercent}% Recommended</Text>
             </View>
-            <FlatList
-                data={driversRated}
-                renderItem={renderDriver}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.reviewList}
-            />
+            {loading ? (
+                <ActivityIndicator size="large" color="#1E40AF" style={{ marginTop: 20 }} />
+            ) : (
+                <FlatList
+                    data={reviews}
+                    renderItem={renderDriver}
+                    keyExtractor={(item, index) => item.id || index.toString()} 
+                    contentContainerStyle={{ paddingBottom: 20 }}
+                    style={{ flex: 1 }}
+                    showsVerticalScrollIndicator={false}
+                />
+            )}
         </View>
     );
 };
@@ -72,12 +113,6 @@ const styles = StyleSheet.create({
         flexGrow: 1,
         padding: 10,
         backgroundColor: '#F3F4F6',
-    }, 
-    container3: {
-        flex: 1,
-        backgroundColor:  '#F3F4F6',
-        paddingHorizontal: 15,
-        paddingTop: 10,
     },
     header: {
         flexDirection: 'row',
@@ -96,29 +131,7 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: 'bold',
         color: '#EDE9F6',
-        marginLeft: 70,
-    },
-    summarySection: {
-        backgroundColor: "#BFDBFE",
-        padding: 20,
-        alignItems: "center",
-        borderBottomWidth: 1,
-        borderBottomColor: "#E5E7EB",
-    },
-    summaryTitle: {
-        fontSize: 16,
-        color: "#374151",
-        marginBottom: 10,
-    },
-    overallRating: {
-        fontSize: 48,
-        fontWeight: "bold",
-        color: "#1E40AF",
-    },
-    recommended: {
-        fontSize: 16,
-        color: "#374151",
-        marginTop: 10,
+        marginLeft: 60,
     },
     reviewList: {
         padding: 20,
@@ -161,16 +174,27 @@ const styles = StyleSheet.create({
         color: "#374151",
         marginTop: 10,
     },
-    writeReviewButton: {
-        backgroundColor: "#1E40AF",
-        padding: 15,
+    summarySection: {
+        backgroundColor: "#BFDBFE",
+        padding: 20,
         alignItems: "center",
-        margin: 20,
-        borderRadius: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: "#E5E7EB",
     },
-    buttonText: {
-        color: "#FFF",
+    summaryTitle: {
         fontSize: 16,
+        color: "#374151",
+        marginBottom: 10,
+    },
+    overallRating: {
+        fontSize: 48,
+        fontWeight: "bold",
+        color: "#1E40AF",
+    },
+    recommended: {
+        fontSize: 16,
+        color: "#374151",
+        marginTop: 10,
     },
 });
 

@@ -13,17 +13,16 @@ import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
 import { globalColors } from "../../constants/colors";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRoute } from "@react-navigation/native";
 import { useDriverData } from "../../context/DriverContext";
 
 const { height: screenHeight } = Dimensions.get("window");
 
-const RidePage = ({ navigation , route }) => {
+const RidePage = ({ navigation }) => {
   const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [isOnline, setIsOnline] = useState(false);
   const animatedHeight = useRef(new Animated.Value(screenHeight * 0.5)).current;
-  // pass to other screens
-  const { driverData } = useDriverData();
+  const { driverDetails } = useDriverData();
 
   const panResponder = useRef(
     PanResponder.create({
@@ -55,26 +54,27 @@ const RidePage = ({ navigation , route }) => {
       }
       let currentLocation = await Location.getCurrentPositionAsync({});
       setLocation(currentLocation.coords);
-      // await AsyncStorage.setItem('Driver_Latitude' , location.latitude)
-      // await AsyncStorage.setItem('Driver_Longitude' , location.longitude)
-      await AsyncStorage.setItem('Driver_Latitude' , '31.4800906')
-      await AsyncStorage.setItem('Driver_Longitude' , '74.2980626')
+      await AsyncStorage.setItem("Driver_Latitude", "31.4800906");
+      await AsyncStorage.setItem("Driver_Longitude", "74.2980626");
     })();
   }, []);
 
   function navigationHandler() {
-    navigation.navigate("requests" , { data : driverData });
+    if (isOnline) {
+      navigation.navigate("requests", { data: driverDetails });
+    }
   }
+
   function checkCarpoolRidesHandler() {
-    // navigation.navigate("carpool_requests" , {driverLocation:{
-    //   latitude: location.latitude,
-    //   longitude: location.longitude
-    // }});
-    
-    navigation.navigate("carpool_requests" , {driverLocation:{
-      latitude: 31.4800906,
-      longitude: 74.2980626
-    }});
+    if (isOnline) {
+      navigation.navigate("carpool_requests", {
+        driverLocation: {
+          latitude: 31.4800906,
+          longitude: 74.2980626,
+        },
+        data: driverDetails,
+      });
+    }
   }
 
   if (!location) {
@@ -87,6 +87,16 @@ const RidePage = ({ navigation , route }) => {
 
   return (
     <View style={styles.container}>
+      {/* Online/Offline Button */}
+      <View style={styles.onlineStatusContainer}>
+        <TouchableOpacity
+          style={[styles.onlineButton, { backgroundColor: isOnline ? "green" : "red" }]}
+          onPress={() => setIsOnline(!isOnline)}
+        >
+          <Text style={styles.buttonText}>{isOnline ? "Online" : "Offline"}</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Map View */}
       <MapView
         {...panResponder.panHandlers}
@@ -107,15 +117,20 @@ const RidePage = ({ navigation , route }) => {
         />
       </MapView>
 
-      {/* Incoming ride button */}
+      {/* Incoming ride and Check Carpool Rides buttons */}
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.doneButton} onPress={navigationHandler}>
+        <TouchableOpacity
+          style={[styles.doneButton, { opacity: isOnline ? 1 : 0.5 }]}
+          onPress={navigationHandler}
+          disabled={!isOnline}
+        >
           <Text style={styles.buttonText}>Incoming Rides</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.doneButton}
+          style={[styles.doneButton, { opacity: isOnline ? 1 : 0.5 }]}
           onPress={checkCarpoolRidesHandler}
+          disabled={!isOnline}
         >
           <Text style={styles.buttonText}>Check Carpool Rides</Text>
         </TouchableOpacity>
@@ -131,9 +146,21 @@ const styles = StyleSheet.create({
   mapView: {
     flex: 1,
   },
+  onlineStatusContainer: {
+    position: "absolute",
+    top: 50,
+    right: 20,
+    zIndex: 1,
+  },
+  onlineButton: {
+    borderRadius: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    alignItems: "center",
+  },
   buttonContainer: {
-    flexDirection: "row", // Change from "column" to "row"
-    justifyContent: "space-around", // Adjust spacing
+    flexDirection: "row",
+    justifyContent: "space-around",
     alignItems: "center",
     position: "absolute",
     bottom: 50,
@@ -141,7 +168,6 @@ const styles = StyleSheet.create({
     right: 0,
     paddingHorizontal: 20,
   },
-
   doneButton: {
     backgroundColor: globalColors.violetBlue,
     borderRadius: 24,
@@ -149,7 +175,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     alignItems: "center",
   },
-
   activityIndicator: {
     flex: 1,
     justifyContent: "center",
