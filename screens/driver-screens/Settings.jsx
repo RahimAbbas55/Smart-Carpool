@@ -23,7 +23,7 @@ export default function Profile({ navigation }) {
     lastName: driverDetails.lastName || "",
     driverEmail: driverDetails.driverEmail || "",
     driverPhone: driverDetails.driverPhone || "",
-    dateOfBirth: new Date(driverDetails.dateOfBirth) || new Date(),
+    dateOfBirth: new Date(driverDetails.dateOfBirth),
     brand: driverDetails.brand || "",
     vehicle: driverDetails.vehicle || "",
     vehicleType: driverDetails.vehicleType || "",

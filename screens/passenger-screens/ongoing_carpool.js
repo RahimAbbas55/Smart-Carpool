@@ -1,11 +1,11 @@
-import * as Location from 'expo-location';
 import React, { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
-import getCoordinates from '../../data-service/helper';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View , Linking} from 'react-native';
 import { GOOGLE_API_KEY } from "@env";
 import { db } from '../../data-service/firebase';
-import { updateDoc ,doc, onSnapshot} from '@firebase/firestore';
+import * as Location from 'expo-location';
+import { doc, onSnapshot} from '@firebase/firestore';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import getCoordinates from '../../data-service/helper';
 
 const getDirections = async (origin, destination, apiKey) => {
   try {
@@ -195,7 +195,10 @@ const CarpoolOngoingRideScreen = ({ navigation, route }) => {
     Alert.alert(
       "Contact Driver",
       `You can contact the driver at: ${data.driverNumber}`,
-      [{ text: "OK" }]
+      [
+        { text: "Call", onPress: () => Linking.openURL(`tel:${data.driverNumber}`) },
+        { text: "Cancel", style: "cancel" }
+      ]
     );
   };
 

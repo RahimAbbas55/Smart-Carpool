@@ -9,14 +9,12 @@ const passengerRoutes = require("./routes/passengerRoutes");
 const driverRoutes = require("./routes/driverRoutes");
 const singleRideRoutes = require("./routes/SingleRideRoute");
 const carpoolRideRoutes = require("./routes/CarpoolRideRoutes");
-// after integration
-
 const complaintRoutes = require("./routes/complaintRoutes");
 const driverComplaintRoutes = require("./routes/driverComplaintRoute")
 const rideHistoryRoutes = require("./routes/rideHistoryRoute");
 const packagesRoutes = require("./routes/packageRoutes");
 const subscriptionRoutes = require("./routes/subscriptionRoutes");
-const accountRoutes=require('./routes/AccountRoutes');
+const accountRoutes = require('./routes/AccountRoutes');
 
 dotenv.config();
 const app = express();
@@ -26,6 +24,17 @@ const server = http.createServer(app);
 const API_KEY = process.env.IMG_API_KEY; 
 const IMG_UPLOAD_URL = process.env.IMG_UPLOAD_URL;
 const client = twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
+const dialogflow = require('@google-cloud/dialogflow');
+const uuid = require('uuid');
+
+// Load the credentials file
+const credentials = require('./smart-carpool-diagflow.json');
+const projectId = credentials.project_id;
+
+// Initialize Dialogflow client with keyFilename for direct authentication
+const sessionClient = new dialogflow.SessionsClient({
+  keyFilename: './smart-carpool-diagflow.json'
+});
 
 app.post("/pay", (req, res) => {
   console.log("Request body:", req.body);
@@ -103,6 +112,31 @@ app.post("/verify-otp", async (req, res) => {
   }
 });
 
+// Dialogflow chatbot endpoint with improved error handling
+app.post('/chat', async (req, res) => {
+  const { message } = req.body;
+  const sessionId = uuid.v4(); 
+  const sessionPath = sessionClient.projectAgentSessionPath(projectId, sessionId);
+
+  const request = {
+    session: sessionPath,
+    queryInput: {
+      text: {
+        text: message,
+        languageCode: 'en-US',
+      },
+    },
+  };
+  try {
+    const responses = await sessionClient.detectIntent(request);
+    const result = responses[0].queryResult;
+    res.json({ reply: result.fulfillmentText || 'Sorry, I can not process your request at the moment. Please try again later!'});
+  } catch (error) {
+    console.error('Dialogflow error:', error);
+    res.status(500).json({ error: error.message || 'Error processing request' });
+  }
+});
+
 app.use(cors());
 app.use(express.json());
 
@@ -114,14 +148,12 @@ app.use("/api/driver", driverRoutes);
 app.use("/api/passenger", passengerRoutes);
 app.use("/api/singleRide", singleRideRoutes);
 app.use("/api/carpoolRide", carpoolRideRoutes);
-app.use('/api/driver-contact-us' , driverComplaintRoutes)
-
-//after integration
+app.use('/api/driver-contact-us', driverComplaintRoutes);
 app.use("/api/contactus", complaintRoutes);
 app.use("/api/history", rideHistoryRoutes);
 app.use("/api/packages", packagesRoutes);
 app.use("/api/subscription", subscriptionRoutes);
-app.use('/api/accounts' , accountRoutes)
+app.use('/api/accounts', accountRoutes);
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, "0.0.0.0", () =>

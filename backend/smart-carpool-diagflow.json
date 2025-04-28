@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "smart-carpool-chatbot-jycv",
+  "private_key_id": "8277a00f677f6239b8fd850f34b526437268a0d8",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDcHWX8sFpQYbIH\nC6sWygIy4R5Izq3oq5+3hDvaW3f8dR2Vw2q8eRopk/tTff7sP6XscVuW3DM912NP\nGg7cuA4Aq0RlewU+B6tHQwVByyY2+oHvC2gy9Bv2fyD2WXsO9soyTSYvwVKQBt8j\nnwpOzHr90G3CtQMAzOKrju9TUE6Nynn2zNrxrevwLC9PBn6JJfIQ1GlKyDqDnB3w\njpyUkuQx0mTMfDLsObglOS+vfZ9XwJtsD9PmTKjAIjZrnN/BZJORLtJCesrqzHgz\nw24VmQ//y6D0HsRcPQnprn5i3+XA9rrkRPF4/pIs/YNCxFWkmVY0lUKzvzJBTC/L\nABn3X8e/AgMBAAECggEABDfsBHO8x12X89qdZMpqUF9QHUUYwCTJ4tJ98yldm1ED\nSCN+oC4R+koDvw3jHNP7chSaFMITmVPPa2ysbD56xjiCDw/UgePTvIHkT+Z8zQDw\nDIzDanaTMp4tG4uLeDXymhQwbyndUzVOgXhC0k/I66Ra9ihR7mn+zhrnK0mWt9Do\nesTmtvaWdbC3rWJseWf6yFtyV13j+DbNEH5/iHs70dIGcpSslhn8qjjkVEHualVi\nx8W8id4Dir2Z50W+rf9do7tAGg0cwV+fK89ERdDvQh3EvAG1rgyY8E0mx83utBbW\n4lbyDo/BaC3Sz2EPAuZ68rxqZklkNZMvsXjGdGL2AQKBgQD1zLRdKCOqtkGnvnU4\n1Jvclht13/iFZ/4LaltUbRIg2iTvYvG4CfqGygw2h/bdSQsnYxk2IuTw/0GgIsB4\n6E72NyFXeJK8b6ZU/GqV87833fkBRWC2hvUo8xerW1PoH53YLpM9NXVj1lcV3OJG\n3ZtrBa5lNxcPBckstpAK0uja3wKBgQDlP9O0cGiJuuYso7TEG/0ANplrgZeWg2jR\ncehFGeT7YeZ5XX2a7fOfYJC7xgvrlUWILlx2tdcf9NKYjWqt1JdRttBd/QWmbtfC\nUB/B5hbFkvA1VWDEgahJ87efeLnzb0zdk+T8hGOvKsgPZRgx188SEa5hAzi/+ml6\nyvdpZwePIQKBgQDlCsxjJj0eHVlOwyYeP9fBFEsgawT84yuSXZgfMse6vyu9uhh+\nIyZFJc99nPLHvwHawPhEPv3RKDpxyxBJWkgCHNs/1AX/+5YmCVQUyR49I+WdbpWx\nYE7gyq0aqy6j1ZpTUQs49TCfSKK7p6le2a+yaYfZnx0ojX6p4LCWtXPwRwKBgA31\nAtibd2HbRSQ2m0zNP2wB5vlKnIYHXhxSSQfb+brsTPHapUkHb6umX2lvN06Sefc+\ni1aW35AMgb3T7kjDBqts6+as/ukRGoW0Bxrw/TXuKj21Av0zv6Ew+170JK4TeqSK\n2ogdL0x82E1HpF90eiDpfqpdXdkiT8WwEbwTD7zBAoGBAL56eu9R/I3qTCj7uBiA\n31PngJJXlDQRBvxJ5UwlsPP7WVgK4Kxj+/w84zsSHeR6sR+kQlM6UHeSGExBhIL3\nT49RLgwJYbeAuILQoaTvKlKod9fnR6dOwN5Y6Aykx8JrqMnylLoPDNxLE9U1YTtc\ncSYWQAqAzvGjRsqbxQMN/rdU\n-----END PRIVATE KEY-----\n",
+  "client_email": "chatbot@smart-carpool-chatbot-jycv.iam.gserviceaccount.com",
+  "client_id": "117253511424971472217",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/chatbot%40smart-carpool-chatbot-jycv.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

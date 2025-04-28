@@ -46,6 +46,8 @@ import CarpoolRequests from "./screens/driver-screens/CarpoolRequests";
 import CarpoolRideDetail from "./screens/driver-screens/CarpoolRideDetail";
 import VehicleDetails from "./screens/driver-screens/VehicleDetails";
 import ContactUs from "./screens/driver-screens/ContactUs";
+import ChatBotScreen from "./screens/driver-screens/ChatBotScreen";
+import ChatBot from "./screens/passenger-screens/ChatBot"
 
 const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
@@ -110,6 +112,16 @@ function DriverDrawer({ route }) {
             headerTitleStyle: { fontWeight: "bold" },
             drawerLabel: "Contact Us",
           }}
+        />
+        <Drawer.Screen
+          name="support"
+          component={ContactUs}
+          options={{ headerShown: true , headerStyle: {
+            backgroundColor: globalColors.violetBlue,
+          },
+          headerTintColor: 'white',
+          headerTitle: 'AI Support'
+        }}
         />
       </Drawer.Navigator>
     </DriverProvider>
@@ -271,6 +283,17 @@ export default function App() {
             name="carpool_ongoing"
             component={CarpoolOngoingRideScreen}
             options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Support"
+            component={ChatBot}
+            options={{ headerShown: true , headerStyle: {
+              backgroundColor: globalColors.violetBlue,
+            },
+            headerTintColor: 'white',
+            headerTitle: 'AI Support'
+          }
+          }
           />
           {/* Driver Screens */}
           <Stack.Screen

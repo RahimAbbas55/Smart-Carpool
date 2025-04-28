@@ -2,6 +2,8 @@
 
 # .gitignore
 .env
+your-dialogflow-service-account.json
+
 
 # dependencies
 node_modules/

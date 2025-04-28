@@ -21,6 +21,7 @@ import SettingsScreen from "./settings";
 import WalletScreen from "./wallet";
 import { getDriverdata } from "../../data-service/auth";
 import { getUserData } from '../../data-service/auth';
+import ChatBotScreen from "../driver-screens/ChatBotScreen";
 
 const pages = [
   { name: "Home", component: RequestRideScreen, icon: "home" },
@@ -34,6 +35,7 @@ const pages = [
   },
   { name: "ContactUs", component: ContactUsScreen, icon: "mail" },
   { name: "Settings", component: SettingsScreen, icon: "settings" },
+  { name: "Support" , component: ChatBotScreen , icon: "mail"},
   { name: "Driver", component: LoginScreen, icon: "person" },
 ];
 
