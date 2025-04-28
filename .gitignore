@@ -2,6 +2,8 @@
 
 # .gitignore
 .env
+backend/.env
+backend/smart-carpool-diagflow.json
 
 # dependencies
 node_modules/
