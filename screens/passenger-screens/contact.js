@@ -21,7 +21,6 @@ const ContactUsScreen = () => {
     const fetchUser = async () => {
       try {
         const data = await getUserData();
-        // console.log('Fetched userData:', data);
         setUserData(data);
         setUserId(data?.userId);
         if (data?.name) setName(data.name); 
@@ -38,14 +37,12 @@ const ContactUsScreen = () => {
       Alert.alert('Error', 'All fields are required!');
       return;
     }
-
     try {
       const response = await fetch(`${getBackendUrl()}contactus`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, phone, complaint: query, userId }),
       });
-
       const data = await response.json();
       if (response.ok) {
         Alert.alert('Success', 'Your complaint has been sent!', [

@@ -4,21 +4,18 @@ import { getBaseUrl } from '../../constants/ipConfig';
 import { globalColors } from '../../constants/colors';
 import axios from 'axios';
 
-// Simple Send icon component using View shapes instead of SVG
 const SendIcon = () => (
   <View style={styles.sendIcon}>
     <View style={styles.sendIconTriangle} />
   </View>
 );
-
-// Simple Message Circle icon component using View shapes instead of SVG
 const MessageCircleIcon = () => (
   <View style={styles.messageCircleIcon}>
     <View style={styles.messageCircleInner} />
   </View>
 );
 
-const ChatBotScreen = () => {
+const DriverChatBot = () => {
   const [message, setMessage] = useState('');
   const [chatHistory, setChatHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -29,8 +26,6 @@ const ChatBotScreen = () => {
       flatListRef.current.scrollToEnd({ animated: true });
     }
   }, [chatHistory]);
-
-  // Function to handle sending messages
   const sendMessage = async () => {
     if (!message.trim()) return;
     
@@ -312,4 +307,4 @@ const styles = StyleSheet.create({
   }
 });
 
-export default ChatBotScreen;
+export default DriverChatBot;

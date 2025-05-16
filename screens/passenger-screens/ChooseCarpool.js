@@ -101,39 +101,28 @@ const ChooseCarpool = ({ navigation, route }) => {
 
   useEffect(() => {
     if (!rideId) return;
-
+  
     const rideRef = doc(db, "AcceptedCarpoolRides", rideId);
-
+  
     const unsubscribe = onSnapshot(rideRef, (docSnapshot) => {
       if (docSnapshot.exists()) {
         const updatedRide = docSnapshot.data();
-        console.log(
-          "🔥 Firestore Snapshot Triggered! Updated Ride:",
-          updatedRide
-        );
-
+        console.log("🔥 Firestore Snapshot Triggered! Updated Ride:", updatedRide);
+  
         setRideData(updatedRide);
-
+  
+        // Automatically navigate to ongoing screen if driver has accepted
         if (updatedRide.driverAccepted) {
-          Alert.alert(
-            "Driver Accepted!",
-            "Your ride has been accepted by the driver.",
-            [
-              {
-                text: "OK",
-                onPress: () =>
-                  navigation.navigate("carpool_ongoing", { rideData: updatedRide }),
-              },
-            ]
-          );
+          navigation.navigate("carpool_ongoing", { rideData: { id: rideId, ...updatedRide } });
         }
       } else {
         console.log("❌ Ride not found in AcceptedCarpoolRides.");
       }
     });
-
+  
     return () => unsubscribe();
   }, [rideId]);
+  
 
   // Function to find an existing carpool ride
   const findMatchingRide = async () => {
@@ -164,8 +153,6 @@ const ChooseCarpool = ({ navigation, route }) => {
       });
 
       if (matchedRide) {
-        console.log("🚗 Found an existing ride! Adding passenger...");
-
         const rideRef = doc(db, "AcceptedCarpoolRides", matchedRide.id);
         await updateDoc(rideRef, {
           passengerId: arrayUnion(rideData.id),
@@ -176,7 +163,7 @@ const ChooseCarpool = ({ navigation, route }) => {
         });
 
         Alert.alert("🚗 Matched!", "You have been added to an ongoing ride.");
-        navigation.navigate("OngoingRide", { rideData: matchedRide });
+        navigation.navigate("carpool_ongoing", { rideData: matchedRide });
         return;
       } 
       else {
@@ -196,7 +183,7 @@ const ChooseCarpool = ({ navigation, route }) => {
         );
       }
     } catch (error) {
-      console.error("Error finding or creating ride:", error);
+      console.error("Error finding or creating ride:", error.message);
     }
   };
 

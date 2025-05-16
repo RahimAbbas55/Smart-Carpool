@@ -28,28 +28,20 @@ const PaymentScreen = () => {
 
   const verifyMPIN = async () => {
     try {
-      console.log("Sending request with:", { userId, mpin }); // Debugging log
-  
       const response = await fetch(`${getBackendUrl()}accounts/verify-mpin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, mpin }),
       });
-  
       const data = await response.json();  
-      console.log("API Response:", data); 
-  
       if (response.ok) {
         if (data.message === "MPIN Verified") {
-          console.log("MPIN Verified:", data.message);
           setStep(2);
         } else {
-          console.error("Invalid MPIN:", data.error || "Unexpected error");
           Alert.alert("Error", "Invalid MPIN");
           navigation.navigate('Home');
         }
       } else {
-        console.error(`Server Error (${response.status}):`, data.error || "Unknown error");
         Alert.alert("Error", "Invalid MPIN");
         navigation.navigate('Home');
       }
@@ -74,14 +66,11 @@ const PaymentScreen = () => {
         const data = await response.json();
   
         if (response.ok) {
-          console.log('Wallet updated successfully:', data);
           Alert.alert('Wallet Update', 'Your wallet has been updated successfully.');
         } else {
-          console.error('Error updating wallet:', data);
           Alert.alert('Error', 'Failed to update wallet. Please try again.');
         }
       } catch (error) {
-        console.error('Error in wallet update request:', error);
         Alert.alert('Error', 'Something went wrong with the wallet update request.');
       }
     };
@@ -98,7 +87,7 @@ const PaymentScreen = () => {
     }
 
     try {
-      const response = await fetch("https://27ca-2400-adc5-470-5700-a869-23ed-8e39-111a.ngrok-free.app/pay", {
+      const response = await fetch("https://0bf6-2400-adc7-1105-c000-2021-20df-5bb1-ca3f.ngrok-free.app/pay", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -109,7 +98,7 @@ const PaymentScreen = () => {
           pp_TxnCurrency: "PKR",
           pp_BillReference: "billRef123",
           pp_Description: description.trim(),
-          pp_ReturnURL: "https://27ca-2400-adc5-470-5700-a869-23ed-8e39-111a.ngrok-free.app/payment/callback",
+          pp_ReturnURL: "https://0bf6-2400-adc7-1105-c000-2021-20df-5bb1-ca3f.ngrok-free.app/payment/callback",
         }),
       });
 
@@ -117,22 +106,21 @@ const PaymentScreen = () => {
       if (response.ok) {
         try {
           const data = JSON.parse(text);
+          console.log(data)
           if (data.success) {
             Alert.alert("Payment Successful", "Your payment has been successfully processed.");
             await handleWalletUpdate(email, parsedAmount);
-            navigation.navigate('Home');
+            navigation.replace('Home');
           } else {
             Alert.alert("Payment Failed", "There was an issue with your payment.");
           }
         } catch (error) {
-          console.error("Error parsing JSON:", error);
           Alert.alert("Error", "Failed to parse the response.");
         }
       } else {
         Alert.alert("Error", "Server returned an error. Please try again.");
       }
     } catch (error) {
-      console.error("Error initiating payment:", error);
       Alert.alert("Error", "Something went wrong with the payment request.");
     }
   };

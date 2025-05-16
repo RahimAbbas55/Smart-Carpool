@@ -54,8 +54,8 @@ const RidePage = ({ navigation }) => {
       }
       let currentLocation = await Location.getCurrentPositionAsync({});
       setLocation(currentLocation.coords);
-      await AsyncStorage.setItem("Driver_Latitude", "31.4800906");
-      await AsyncStorage.setItem("Driver_Longitude", "74.2980626");
+      await AsyncStorage.setItem("Driver_Latitude", "32.2345472");
+      await AsyncStorage.setItem("Driver_Longitude", "74.1487851");
     })();
   }, []);
 
@@ -67,10 +67,11 @@ const RidePage = ({ navigation }) => {
 
   function checkCarpoolRidesHandler() {
     if (isOnline) {
+      // Hardcoded for testing purposes
       navigation.navigate("carpool_requests", {
         driverLocation: {
-          latitude: 31.4800906,
-          longitude: 74.2980626,
+          latitude: 32.2345472,
+          longitude: 74.1487851,
         },
         data: driverDetails,
       });

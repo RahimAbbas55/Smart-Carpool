@@ -26,7 +26,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
                 Alert.alert('Error', data.message || 'Something went wrong.');
             }
         } catch (error) {
-            Alert.alert('Error', 'Something went wrong.');
+            console.log('Something went wrong' , error.message)
         }
     };
 

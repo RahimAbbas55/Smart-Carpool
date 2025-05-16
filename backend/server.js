@@ -15,6 +15,7 @@ const rideHistoryRoutes = require("./routes/rideHistoryRoute");
 const packagesRoutes = require("./routes/packageRoutes");
 const subscriptionRoutes = require("./routes/subscriptionRoutes");
 const accountRoutes = require('./routes/AccountRoutes');
+const passengerRatingRoutes = require('./routes/ratingRoutes')
 
 dotenv.config();
 const app = express();
@@ -154,6 +155,7 @@ app.use("/api/history", rideHistoryRoutes);
 app.use("/api/packages", packagesRoutes);
 app.use("/api/subscription", subscriptionRoutes);
 app.use('/api/accounts', accountRoutes);
+app.use('/api/passengerRating', passengerRatingRoutes);
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, "0.0.0.0", () =>

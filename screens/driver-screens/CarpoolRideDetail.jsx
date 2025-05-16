@@ -10,11 +10,19 @@ import {
   Dimensions,
   PanResponder,
   Alert,
-  Modal, ToastAndroid,
+  Modal,
+  ToastAndroid,
 } from "react-native";
 import MapView, { Marker, Polyline } from "react-native-maps";
 import { globalColors } from "../../constants/colors";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  collection,
+  getDocs,
+  arrayUnion,
+} from "firebase/firestore";
 import { db } from "../../data-service/firebase";
 import { GOOGLE_API_KEY } from "@env";
 import * as Location from "expo-location";
@@ -27,12 +35,13 @@ const CarpoolRideDetail = ({ navigation, route }) => {
   const [errorMsg, setErrorMsg] = useState(null);
   const [rideData, setRideData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [routeCoordinates, setRouteCoordinates] = useState([]); 
+  const [routeCoordinates, setRouteCoordinates] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedPassenger, setSelectedPassenger] = useState(null);
+  const [detailsVisible, setDetailsVisible] = useState(false);
+  const [allPassengers, setAllPassengers] = useState([]);
   const animatedHeight = useRef(new Animated.Value(screenHeight * 0.5)).current;
   const { data } = route.params;
-
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: () => true,
@@ -71,7 +80,7 @@ const CarpoolRideDetail = ({ navigation, route }) => {
   useEffect(() => {
     const fetchRideData = async () => {
       try {
-        const rideDocRef = doc(db, "CarpoolRides", data);
+        const rideDocRef = doc(db, "AcceptedCarpoolRides", data);
         const rideDocSnap = await getDoc(rideDocRef);
 
         if (rideDocSnap.exists()) {
@@ -121,34 +130,34 @@ const CarpoolRideDetail = ({ navigation, route }) => {
       fetchRideData();
     }
   }, [data]);
-  
+
   // Navigation Function
   function returnToHomepage() {
     const cancelRide = async () => {
       try {
-        const rideDocRef = doc(db, "Rides", data);
+        const rideDocRef = doc(db, "AcceptedCarpoolRides", data);
         await updateDoc(rideDocRef, {
-          status: "cancelled",
+          rideStatus: "cancelled",
           cancelledAt: new Date(),
         });
-        Alert.alert('Ride Cancelled Successfully!');
+        Alert.alert("Ride Cancelled Successfully!");
         navigation.replace("drawer");
       } catch (error) {
         console.error("Driver: Error cancelling ride:", error);
       }
-    }
+    };
     cancelRide();
   }
 
   function finishRideHandler() {
     const updateRideStatus = async () => {
       try {
-        const rideDocRef = doc(db, "Rides", rideId);
+        const rideDocRef = doc(db, "AcceptedCarpoolRides", data);
         await updateDoc(rideDocRef, {
-          status: "completed",
+          rideStatus: "completed",
           completedAt: new Date(),
         });
-        Alert.alert('Ride Finished Successfully!');
+        Alert.alert("Ride Finished Successfully!");
         navigation.replace("drawer");
       } catch (error) {
         console.error("Driver: Error completing ride:", error);
@@ -157,33 +166,127 @@ const CarpoolRideDetail = ({ navigation, route }) => {
     updateRideStatus();
   }
 
-  function checkNewRequestsHandler() {
-    if (!rideData || !rideData.passengerId || rideData.passengerId.length === 0) {
-      Alert.alert("No new requests available");
-      return;
+ const showPassengerDetails = async () => {
+  try {
+    const docRef = doc(db, "AcceptedCarpoolRides", data);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      const ride = docSnap.data();
+
+      console.log("Ride data:", ride); // 🔍 Debugging
+
+      const passengerNames = Array.isArray(ride.passengerName)
+        ? ride.passengerName
+        : ride.passengerName
+        ? [ride.passengerName]
+        : [];
+
+      const pickups = Array.isArray(ride.pickup) ? ride.pickup : [ride.pickup];
+      const dropoffs = Array.isArray(ride.dropoff) ? ride.dropoff : [ride.dropoff];
+      const fares = Array.isArray(ride.fare) ? ride.fare : [ride.fare];
+
+      const passengers = passengerNames.map((name, index) => ({
+        name: name || "N/A",
+        pickup: pickups[index] ?? pickups[0] ?? "N/A",   // fallback to first or N/A
+        dropoff: dropoffs[index] ?? dropoffs[0] ?? "N/A",
+        fare: fares[index] ?? fares[0] ?? "N/A",
+      }));
+
+      setAllPassengers(passengers);
+      setDetailsVisible(true);
+    } else {
+      Alert.alert("No data found");
     }
-    const newRequest = {
-      passengerId: rideData.passengerId[0],
-      passengerName: rideData.passengerName[0],
-      passengerPhone: rideData.passengerPhone[0],
-      pickup: rideData.pickup,
-      dropoff: rideData.dropoff,
-      fare: rideData.fare[0],
+  } catch (error) {
+    console.error("Error fetching passenger details:", error);
+    Alert.alert("Error fetching details");
+  }
+};
+
+
+  function checkNewRequestsHandler() {
+    // if (!rideData || !rideData.dropoffLocation) {
+    //   Alert.alert("No New Ride Requests!");
+    //   return;
+    // }
+
+    const fetchAndFilterRequests = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "CarpoolRides"));
+        let found = null;
+
+        querySnapshot.forEach((docSnap) => {
+          const request = docSnap.data();
+          console.log("fetched request", request);
+          if (
+            request.dropoff
+            && request.rideStatus === "pending"
+            // &&
+            // isWithin5Km(
+            //   parseFloat(AsyncStorage.getItem("Driver_Latitude")),
+            //   parseFloat(AsyncStorage.getItem("Driver_Longitude")),
+            //   request.passengerCurrentLocationLatitude,
+            //   request.passengerCurrentLocationLongitude
+            // )
+          ) {
+            found = { id: docSnap.id, ...request };
+          }
+        });
+
+        if (found) {
+          setSelectedPassenger({
+            passengerName: found.passengerName?.[0],
+            passengerPhone: found.passengerPhone?.[0],
+            pickup: found.pickup,
+            dropoff: found.dropoff,
+            fare: found.fare?.[0],
+          });
+          setModalVisible(true);
+        } else {
+          Alert.alert("No nearby ride requests found.");
+        }
+      } catch (error) {
+        console.error("Error fetching ride requests:", error);
+        Alert.alert("Error fetching new ride requests");
+      }
     };
-    setSelectedPassenger(newRequest);
-    setModalVisible(true);
+
+    fetchAndFilterRequests();
   }
 
   function handleAccept() {
-    setModalVisible(false);
-    ToastAndroid.show("Passenger Added to your carpool", ToastAndroid.SHORT);
+    const addPassengerToCarpool = async () => {
+      try {
+        const acceptedDocRef = doc(db, "AcceptedCarpoolRides", data);
+
+        await updateDoc(acceptedDocRef, {
+          passengerName: arrayUnion(selectedPassenger.passengerName),
+          passengerPhone: arrayUnion(selectedPassenger.passengerPhone),
+          pickup: arrayUnion(selectedPassenger.pickup),
+          dropoff: arrayUnion(selectedPassenger.dropoff),
+          fare: arrayUnion(selectedPassenger.fare.toString()),
+          updatedAt: new Date(),
+        });
+
+        ToastAndroid.show(
+          "Passenger Added to your carpool",
+          ToastAndroid.SHORT
+        );
+      } catch (error) {
+        console.error("Error adding passenger to carpool:", error);
+        Alert.alert("Failed to add passenger");
+      } finally {
+        setModalVisible(false);
+      }
+    };
+    addPassengerToCarpool();
   }
 
   function handleReject() {
     setModalVisible(false);
     ToastAndroid.show("Passenger Rejected", ToastAndroid.SHORT);
   }
-
 
   if (loading || !location) {
     return (
@@ -198,10 +301,10 @@ const CarpoolRideDetail = ({ navigation, route }) => {
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>{errorMsg}</Text>
         <TouchableOpacity
-          style={styles.checkRequestsButton}
+          style={styles.button}
           onPress={returnToHomepage}
         >
-          <Text style={styles.checkRequestsText}>Return to Home</Text>
+          <Text style={styles.buttonText}>Return to Home</Text>
         </TouchableOpacity>
       </View>
     );
@@ -255,90 +358,143 @@ const CarpoolRideDetail = ({ navigation, route }) => {
       >
         <View contentContainerStyle={styles.scrollContent}>
           <View style={styles.card}>
-            <Text style={styles.heading}>{rideData?.requestType === 'single' ? 'Single' : "Carpool" }
-            {" "}Ride Details
-            </Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Pickup Location"
-              value={rideData?.requestOrigin || "No pickup address"}
-              editable={false}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Drop off Location"
-              value={rideData?.requestDestination || "LUMS, Department of Physics, opposite Sector, Punjab Small Industries Housing Society, Lahore, Pakistan"}
-              editable={false}
-            />
-            <View style={styles.infoRow}>
-              <Text style={styles.label}>PKR</Text>
-              <Text style={styles.value}>0000</Text>
-            </View>
+            <Text style={styles.heading}>Carpool Ride Details</Text>
+
             <View style={styles.infoRow}>
               <Text style={styles.label}>Psgs.</Text>
-              <Text style={styles.value}>
-            
-                people
-              </Text>
+              <Text style={styles.value}>{rideData.passengerName.length} passenger</Text>
             </View>
 
             <View style={styles.btnContainer}>
+              {/* Finish Ride Button */}
               <TouchableOpacity
                 style={[
-                  styles.checkRequestsButton,
+                  styles.button,
                   styles.customBtn,
-                  styles.accept,
+                  styles.successBtn,
                 ]}
                 onPress={finishRideHandler}
               >
-                <Text style={styles.checkRequestsText}>Finish Ride</Text>
+                <Text style={styles.buttonText}>Finish Ride</Text>
               </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.checkRequestsButton, styles.customBtn]}
-                  onPress={checkNewRequestsHandler}
-                >
-                  <Text style={styles.checkRequestsText}>
-                    Check new requests
-                  </Text>
-                </TouchableOpacity>
+              {/* Check New Passenger Button */}
+              <TouchableOpacity
+                style={[styles.button, styles.customBtn, styles.primaryBtn]}
+                onPress={checkNewRequestsHandler}
+              >
+                <Text style={styles.buttonText}>Check new requests</Text>
+              </TouchableOpacity>
+              
             </View>
-            <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalHeading}>New Ride Request</Text>
-            {selectedPassenger && (
-              <>
-                <Text>Passenger ID: {selectedPassenger.passengerId}</Text>
-                <Text>Name: {selectedPassenger.passengerName}</Text>
-                <Text>Phone: {selectedPassenger.passengerPhone}</Text>
-                <Text>Pickup: {selectedPassenger.pickup}</Text>
-                <Text>Dropoff: {selectedPassenger.dropoff}</Text>
-                <Text>Fare: PKR {selectedPassenger.fare}</Text>
-              </>
-            )}
-            <View style={styles.modalButtons}>
-              <TouchableOpacity style={[styles.modalButton, styles.accept]} onPress={handleAccept}>
-                <Text style={styles.modalButtonText}>Accept</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalButton, styles.reject]} onPress={handleReject}>
-                <Text style={styles.modalButtonText}>Reject</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
             <TouchableOpacity
-              style={[styles.checkRequestsButton, styles.cancel]}
+                style={[styles.button, styles.infoBtn]}
+                onPress={showPassengerDetails}
+              >
+                <Text style={styles.buttonText}>Show Details</Text>
+              </TouchableOpacity>
+              {/* Cancel Ride Button  */}
+            <TouchableOpacity
+              style={[styles.button, styles.dangerBtn]}
               onPress={returnToHomepage}
             >
-              <Text style={styles.checkRequestsText}>Cancel Ride</Text>
+              <Text style={styles.buttonText}>Cancel Ride</Text>
             </TouchableOpacity>
+            {/* Check New Passengers Modal */}
+            <Modal
+              animationType="slide"
+              transparent={true}
+              visible={modalVisible}
+              onRequestClose={() => setModalVisible(false)}
+            >
+              <View style={styles.modalContainer}>
+                <View style={styles.modalContent}>
+                  <View style={styles.modalHeader}>
+                    <Text style={styles.modalHeading}>New Ride Request</Text>
+                  </View>
+                  {selectedPassenger && (
+                    <View style={styles.passengerInfoContainer}>
+                      <View style={styles.infoItem}>
+                        <Text style={styles.infoLabel}>Passenger Name:</Text>
+                        <Text style={styles.infoValue}>{selectedPassenger.passengerName}</Text>
+                      </View>
+                      <View style={styles.infoItem}>
+                        <Text style={styles.infoLabel}>Phone:</Text>
+                        <Text style={styles.infoValue}>{selectedPassenger.passengerPhone}</Text>
+                      </View>
+                      <View style={styles.infoItem}>
+                        <Text style={styles.infoLabel}>Pickup:</Text>
+                        <Text style={styles.infoValue}>{selectedPassenger.pickup}</Text>
+                      </View>
+                      <View style={styles.infoItem}>
+                        <Text style={styles.infoLabel}>Dropoff:</Text>
+                        <Text style={styles.infoValue}>{selectedPassenger.dropoff}</Text>
+                      </View>
+                      <View style={styles.fareContainer}>
+                        <Text style={styles.fareLabel}>Fare:</Text>
+                        <Text style={styles.fareValue}>PKR {selectedPassenger.fare}</Text>
+                      </View>
+                    </View>
+                  )}
+                  <View style={styles.modalButtons}>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.acceptButton]}
+                      onPress={handleAccept}
+                    >
+                      <Text style={styles.modalButtonText}>Accept</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.rejectButton]}
+                      onPress={handleReject}
+                    >
+                      <Text style={styles.modalButtonText}>Reject</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </Modal>
+
+            <Modal
+              animationType="slide"
+              transparent={true}
+              visible={detailsVisible}
+              onRequestClose={() => setDetailsVisible(false)}
+            >
+              <View style={styles.modalContainer}>
+                <View style={styles.detailsModalContent}>
+                  <Text style={styles.modalHeading}>
+                    Carpool Passenger Details
+                  </Text>
+                  {allPassengers.length === 0 ? (
+                    <Text style={styles.noPassengersText}>
+                      No passengers added yet.
+                    </Text>
+                  ) : (
+                    allPassengers.map((passenger, idx) => (
+                      <View key={idx} style={styles.passengerCard}>
+                        <Text style={styles.passengerText}>
+                          Name: {passenger.name}
+                        </Text>
+                        <Text style={styles.passengerText}>
+                          Pickup: {passenger.pickup}
+                        </Text>
+                        <Text style={styles.passengerText}>
+                          Dropoff: {passenger.dropoff}
+                        </Text>
+                        <Text style={styles.passengerText}>
+                          Fare: PKR {passenger.fare}
+                        </Text>
+                      </View>
+                    ))
+                  )}
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.closeButton]}
+                    onPress={() => setDetailsVisible(false)}
+                  >
+                    <Text style={styles.modalButtonText}>Close</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </Modal>
           </View>
         </View>
       </Animated.View>
@@ -348,73 +504,92 @@ const CarpoolRideDetail = ({ navigation, route }) => {
 
 // Helper Function
 async function getDirections(origin, destination, apiKey) {
-    try {
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(
-          origin
-        )}&destination=${encodeURIComponent(destination)}&key=${apiKey}`
-      );
-      
-      if (!response.ok) {
-        throw new Error("Failed to fetch directions");
-      }
-      
-      const data = await response.json();
-      
-      if (data.status !== "OK") {
-        throw new Error(`Directions request failed: ${data.status}`);
-      }
-      
-      // Decode the polyline points from the response
-      const points = data.routes[0].overview_polyline.points;
-      return decodePoly(points);
-    } catch (error) {
-      console.error("Error getting directions:", error);
-      throw error;
+  try {
+    const response = await fetch(
+      `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(
+        origin
+      )}&destination=${encodeURIComponent(destination)}&key=${apiKey}`
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch directions");
     }
+
+    const data = await response.json();
+
+    if (data.status !== "OK") {
+      throw new Error(`Directions request failed: ${data.status}`);
+    }
+
+    // Decode the polyline points from the response
+    const points = data.routes[0].overview_polyline.points;
+    return decodePoly(points);
+  } catch (error) {
+    console.error("Error getting directions:", error);
+    throw error;
+  }
 }
 function decodePoly(encoded) {
-    let poly = [];
-    let index = 0,
+  let poly = [];
+  let index = 0,
     len = encoded.length;
-    let lat = 0,
+  let lat = 0,
     lng = 0;
-    
-    while (index < len) {
-      let b,
+
+  while (index < len) {
+    let b,
       shift = 0,
       result = 0;
-      
-      do {
-        b = encoded.charCodeAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      
-      let dlat = result & 1 ? ~(result >> 1) : result >> 1;
-      lat += dlat;
-      
-      shift = 0;
-      result = 0;
-      
-      do {
-        b = encoded.charCodeAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      
-      let dlng = result & 1 ? ~(result >> 1) : result >> 1;
-      lng += dlng;
-      
-      poly.push({
-        latitude: lat / 1e5,
-        longitude: lng / 1e5,
-      });
-    }
-    
-    return poly;
-}
 
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+
+    let dlat = result & 1 ? ~(result >> 1) : result >> 1;
+    lat += dlat;
+
+    shift = 0;
+    result = 0;
+
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+
+    let dlng = result & 1 ? ~(result >> 1) : result >> 1;
+    lng += dlng;
+
+    poly.push({
+      latitude: lat / 1e5,
+      longitude: lng / 1e5,
+    });
+  }
+
+  return poly;
+}
+function isWithin5Km(lat1, lon1, lat2, lon2) {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return false;
+
+  const R = 6371;
+  const dLat = toRadians(lat2 - lat1);
+  const dLon = toRadians(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRadians(lat1)) *
+      Math.cos(toRadians(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distance = R * c;
+
+  return distance <= 5;
+}
+function toRadians(degrees) {
+  return degrees * (Math.PI / 180);
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -428,9 +603,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-around",
+    marginVertical: 10,
   },
   customBtn: {
-    width: "45%",
+    width: "48%",
   },
   fullWidthBtn: {
     width: "100%",
@@ -460,122 +636,244 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    borderTopLeftRadius: 15,
-    borderTopRightRadius: 15,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     shadowColor: "#000",
-    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.3,
     shadowRadius: 10,
-    elevation: 10,
+    elevation: 15,
   },
   scrollContent: {
     paddingBottom: 20,
   },
   card: {
     backgroundColor: "#eae8fe",
-    borderRadius: 10,
+    borderRadius: 15,
     padding: 20,
     shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 5,
-    borderWidth: 2,
-    borderColor: "#000",
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: "#ccc",
   },
   heading: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "bold",
     marginBottom: 15,
-    color: "#365df2",
+    color: "#2e4bb8",
     textAlign: "center",
   },
   input: {
     backgroundColor: "#fff",
-    borderRadius: 5,
+    borderRadius: 8,
     padding: 12,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: "#ccc",
-    fontSize: 12,
+    fontSize: 14,
   },
   infoRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 12,
+    backgroundColor: "#f5f5f5",
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
   },
   label: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#000",
+    color: "#333",
   },
   value: {
     fontSize: 16,
     color: "#555",
+    fontWeight: "500",
   },
-  checkRequestsButton: {
-    backgroundColor: "#365df2",
-    paddingVertical: 12,
+  button: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
     alignItems: "center",
-    borderRadius: 5,
-    marginTop: 20,
-    borderWidth: 2,
-    borderColor: "black",
+    borderRadius: 10,
+    marginVertical: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
+    flexDirection: "row",
+    justifyContent: "center",
   },
-  checkRequestsText: {
+  buttonText: {
     color: "white",
-    fontWeight: "600",
+    fontWeight: "700",
     fontSize: 16,
+    textAlign: "center",
+  },
+  primaryBtn: {
+    backgroundColor: "#365df2",
+  },
+  successBtn: {
+    backgroundColor: "#2ea84f",
+  },
+  dangerBtn: {
+    backgroundColor: "#e53935",
+    marginTop: 10
+  },
+  infoBtn: {
+    backgroundColor: "#0097a7",
   },
   loadingText: {
     fontSize: 18,
     textAlign: "center",
     marginTop: 20,
   },
-  cancel: {
-    backgroundColor: "red",
-  },
-  accept: {
-    backgroundColor: "green",
-  },
   modalContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0,0,0,0.6)",
   },
   modalContent: {
-    width: "80%",
+    width: "85%",
     backgroundColor: "white",
-    padding: 20,
-    borderRadius: 10,
+    borderRadius: 15,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  modalHeader: {
+    backgroundColor: "#365df2",
+    padding: 15,
     alignItems: "center",
+    borderTopLeftRadius: 15,
+    borderTopRightRadius: 15,
   },
   modalHeading: {
     fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 10,
+    color: "white",
+    textAlign: "center",
+  },
+  passengerInfoContainer: {
+    padding: 20,
+    backgroundColor: "#f8f9ff",
+  },
+  infoItem: {
+    flexDirection: "row",
+    marginBottom: 12,
+    alignItems: "flex-start",
+  },
+  infoLabel: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#333",
+    width: "35%",
+  },
+  infoValue: {
+    fontSize: 15,
+    color: "#444",
+    width: "65%",
+    flexWrap: "wrap",
+  },
+  fareContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#e8f0ff",
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: "#365df2",
+  },
+  fareLabel: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#333",
+    marginRight: 10,
+  },
+  fareValue: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#365df2",
   },
   modalButtons: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    marginTop: 15,
-    width: "100%",
+    borderTopWidth: 1,
+    borderColor: "#e0e0e0",
   },
   modalButton: {
     flex: 1,
-    padding: 10,
-    marginHorizontal: 5,
-    borderRadius: 5,
+    padding: 20,
     alignItems: "center",
+    justifyContent: "center",
+  },
+  acceptButton: {
+    backgroundColor: "#2ea84f",
+    borderRightWidth: 0.5,
+    borderColor: "#e0e0e0",
+  },
+  rejectButton: {
+    backgroundColor: "#e53935",
+    borderLeftWidth: 0.5,
+    borderColor: "#e0e0e0",
+  },
+  closeButton: {
+    backgroundColor: "#365df2",
+    marginTop: 10,
+    borderRadius: 8,
+    width: "80%",
+    alignSelf: "center",
   },
   modalButtonText: {
     color: "white",
-    fontSize: 16,
+    fontSize: 26,
+    fontWeight: "700",
   },
-  reject: {
-    backgroundColor: "red",
+  detailsModalContent: {
+    width: "85%",
+    backgroundColor: "#fff",
+    padding: 20,
+    borderRadius: 15,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 10,
   },
-  accept: {
-    backgroundColor: "green",
+  passengerCard: {
+    width: "100%",
+    backgroundColor: "#f5f8ff",
+    borderRadius: 10,
+    padding: 15,
+    marginVertical: 8,
+    borderWidth: 1,
+    borderColor: "#c0d0ff",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  passengerText: {
+    fontSize: 14,
+    marginBottom: 8,
+    color: "#333",
+  },
+  noPassengersText: {
+    fontSize: 14,
+    fontStyle: "italic",
+    color: "#555",
+    marginVertical: 20,
+    textAlign: "center",
   },
 });
 

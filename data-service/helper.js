@@ -2,6 +2,7 @@ export default async function getCoordinates(location, apiKey) {
     if (!apiKey) {
         throw new Error('Google Maps API key is required');
     }
+    console.log(location)
 
     try {
         const response = await fetch(

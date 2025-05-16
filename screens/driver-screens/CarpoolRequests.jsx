@@ -7,9 +7,8 @@ import {
   onSnapshot,
   doc,
   getDoc,
-  updateDoc,
   setDoc,
-  deleteDoc,
+  updateDoc,
 } from "firebase/firestore";
 import { app } from "../../data-service/firebase";
 import CarpoolRideCard from "../../components/CarpoolRideCard";
@@ -48,14 +47,15 @@ export default function CarpoolRequests({ navigation, route }) {
 
         const filteredRequests = allRequests.filter(
           (ride) =>
-            (ride.rideStatus === "pending" || ride.rideStatus === "ongoing") &&
-            isWithin5Km(
-              driverLocation.latitude,
-              driverLocation.longitude,
-              ride.passengerCurrentLocationLatitude,
-              ride.passengerCurrentLocationLongitude
-            )
+            (ride.rideStatus === "pending" || ride.rideStatus === "ongoing")
+            // isWithin5Km(
+            //   driverLocation.latitude,
+            //   driverLocation.longitude,
+            //   ride.passengerCurrentLocationLatitude,
+            //   ride.passengerCurrentLocationLongitude
+            // )
         );
+        console.log('carpool requests of driver' , filteredRequests)
         setRequests(filteredRequests);
       }
     );
@@ -100,6 +100,10 @@ export default function CarpoolRequests({ navigation, route }) {
         vehicle: data?.vehicle,
         vehicleType: data?.vehicleType,
       });
+      await updateDoc(rideRef , {
+        rideStatus: true
+      })
+
       Alert.alert("Ride accepted successfully!");
       navigation.navigate("carpoolridedetails", { data: id });
     } catch (error) {

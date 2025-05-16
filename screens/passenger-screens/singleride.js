@@ -27,7 +27,6 @@ const SingleRideScreen = ({ route }) => {
   const handleFindDriver = async () => {
     try {
       if (!userData) {
-        console.log("User data not ready yet!");
         Alert.alert("Error", "User data is still loading. Please try again.");
         return;
       }
@@ -46,14 +45,12 @@ const SingleRideScreen = ({ route }) => {
         requestCapacity: 1,
         driverGender: selectedDriver,
       };
-
       const docRef = await addDoc(collection(db, "Rides"), rideData);
       const rideId = docRef.id;
       setTimeout(() => {
         navigation.navigate("ChooseDriver", { rideId });
       }, 1000);
     } catch (error) {
-      console.log("Error saving ride:", error.message);
       Alert.alert("Error", "Failed to request ride. Please try again.");
     }
   };

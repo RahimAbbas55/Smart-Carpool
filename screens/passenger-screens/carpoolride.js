@@ -10,7 +10,7 @@ const CarpoolRideScreen = ({ route }) => {
     const [selectedCarpoolers, setSelectedCarpoolers] = useState('male'); 
     const [additionalPassengers, setAdditionalPassengers] = useState(2);
     const { rideData } = route.params;
-
+    
     // Helper functions for incrementing and decrementing passenger count
     function incrementPassengers(){
         if (additionalPassengers < 3) {

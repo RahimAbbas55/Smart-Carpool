@@ -13,15 +13,15 @@ import {
 } from "react-native";
 import MapView, { Marker, Polyline } from "react-native-maps";
 import { globalColors } from "../../constants/colors";
-import { doc, getDoc, updateDoc, getFirestore } from "firebase/firestore";
+import { doc, getDoc, updateDoc, onSnapshot , setDoc } from "firebase/firestore";
 import { db } from "../../data-service/firebase";
 import { GOOGLE_API_KEY } from "@env";
 import { getBackendUrl } from "../../constants/ipConfig";
 import { Linking } from "react-native";
+import { ScrollView } from "react-native-gesture-handler";
 import * as Location from "expo-location";
 import getCoordinates from "../../data-service/helper";
 import axios from "axios";
-import { ScrollView } from "react-native-gesture-handler";
 
 const { height: screenHeight } = Dimensions.get("window");
 
@@ -32,6 +32,7 @@ const RideDetails = ({ navigation, route }) => {
   const [errorMsg, setErrorMsg] = useState(null);
   const [rideData, setRideData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [vehicleLocation, setVehicleLocation] = useState(null);
   const [routeCoordinates, setRouteCoordinates] = useState([]); // State for polyline coordinates
   const { rideId } = route.params;
   const animatedHeight = useRef(new Animated.Value(screenHeight * 0.5)).current;
@@ -110,7 +111,115 @@ const RideDetails = ({ navigation, route }) => {
       fetchRideData();
     }
   }, [rideId]);
+  // add the vehicles location in the firestore db
+  useEffect(() => {
+    if (!rideData || !rideId) return;
 
+    // Only track if ride is ongoing
+    const isOngoing = ["accepted", "started", "in-progress"].includes(
+      rideData.status
+    );
+    let locationSubscription;
+
+    const startTracking = async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        console.error("Permission to access location was denied");
+        return;
+      }
+
+      locationSubscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.High,
+          timeInterval: 5000, // update every 5 seconds
+          distanceInterval: 10, // or every 10 meters
+        },
+        async (loc) => {
+          const coords = loc.coords;
+          setLocation(coords);
+
+          try {
+            await setDoc(
+              doc(db, "LiveLocations", rideId),
+              {
+                latitude: coords.latitude,
+                longitude: coords.longitude,
+                timestamp: new Date(),
+              },
+              { merge: true }
+            );
+          } catch (error) {
+            console.error("Error updating live location:", error);
+          }
+        }
+      );
+    };
+    startTracking();
+
+    return () => {
+      if (locationSubscription) {
+        locationSubscription.remove();
+      }
+    };
+  }, [rideData, rideId]);
+  // useEffect to fetch the vehicle latitude and longitude
+  useEffect(() => {
+    const unsubscribe = rideId
+      ? onSnapshot(doc(db, "LiveLocations", rideId), (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setVehicleLocation({
+              latitude: data.latitude,
+              longitude: data.longitude,
+            });
+          }
+        })
+      : () => {};
+
+    return () => unsubscribe();
+  }, [rideId]);
+  // useEffect to send vehicles latitude and longitude to the firestore
+  useEffect(() => {
+    let locationSubscription;
+
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setErrorMsg("Permission to access location was denied");
+        return;
+      }
+
+      // Watch location continuously
+      locationSubscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.High,
+          timeInterval: 5000, // every 5 seconds
+          distanceInterval: 10, // or every 10 meters
+        },
+        (loc) => {
+          const coords = loc.coords;
+          setLocation(coords); // update local state
+
+          // Push to Firestore
+          const rideDocRef = doc(db, "LiveLocations", rideId);
+          updateDoc(rideDocRef, {
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            timestamp: new Date(),
+          }).catch((error) => {
+            console.error("Error updating live location:", error);
+          });
+        }
+      );
+    })();
+
+    return () => {
+      if (locationSubscription) {
+        locationSubscription.remove();
+      }
+    };
+  }, [rideId]);
+  // useEffect to fetch the location
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
@@ -124,83 +233,16 @@ const RideDetails = ({ navigation, route }) => {
     })();
   }, []);
 
-  // Helper Function
-  async function getDirections(origin, destination, apiKey) {
-    try {
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(
-          origin
-        )}&destination=${encodeURIComponent(destination)}&key=${apiKey}`
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch directions");
-      }
-
-      const data = await response.json();
-
-      if (data.status !== "OK") {
-        throw new Error(`Directions request failed: ${data.status}`);
-      }
-
-      // Decode the polyline points from the response
-      const points = data.routes[0].overview_polyline.points;
-      return decodePoly(points);
-    } catch (error) {
-      console.error("Error getting directions:", error);
-      throw error;
-    }
-  }
-  function decodePoly(encoded) {
-    let poly = [];
-    let index = 0,
-      len = encoded.length;
-    let lat = 0,
-      lng = 0;
-
-    while (index < len) {
-      let b,
-        shift = 0,
-        result = 0;
-
-      do {
-        b = encoded.charCodeAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-
-      let dlat = result & 1 ? ~(result >> 1) : result >> 1;
-      lat += dlat;
-
-      shift = 0;
-      result = 0;
-
-      do {
-        b = encoded.charCodeAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-
-      let dlng = result & 1 ? ~(result >> 1) : result >> 1;
-      lng += dlng;
-
-      poly.push({
-        latitude: lat / 1e5,
-        longitude: lng / 1e5,
-      });
-    }
-
-    return poly;
-  }
   const openGoogleMaps = () => {
-    if (rideData?.requestDestination) {
-      const destination = encodeURIComponent(rideData.requestDestination);
-      const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
-      Linking.openURL(googleMapsUrl);
-    } else {
-      Alert.alert("Error", "Destination not available");
-    }
-  };
+  if (rideData?.requestDestination && rideData?.requestOrigin) {
+    const origin = encodeURIComponent(rideData.requestOrigin);
+    const destination = encodeURIComponent(rideData.requestDestination);
+    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
+    Linking.openURL(googleMapsUrl);
+  } else {
+    Alert.alert("Error", "Origin or destination not available");
+  }
+};
 
   // Navigation Function
   function returnToHomepage() {
@@ -219,7 +261,7 @@ const RideDetails = ({ navigation, route }) => {
     };
     cancelRide();
   }
-
+  // Helper function to finish the ride
   function finishRideHandler(rideId) {
     const updateRideStatus = async () => {
       try {
@@ -259,11 +301,11 @@ const RideDetails = ({ navigation, route }) => {
 
     updateRideStatus();
   }
-
+  // Helper function to check for new requests
   function checkNewRequestsHandler() {
     navigation.navigate("carpool_requests");
   }
-
+  // Conditionals to display in case of errors
   if (loading || !location) {
     return (
       <View style={styles.activityIndicator}>
@@ -271,7 +313,6 @@ const RideDetails = ({ navigation, route }) => {
       </View>
     );
   }
-
   if (errorMsg) {
     return (
       <View style={styles.errorContainer}>
@@ -288,6 +329,10 @@ const RideDetails = ({ navigation, route }) => {
 
   return (
     <View style={styles.container}>
+      <View style={styles.otpContainer}>
+        <Text style={styles.otpText}>OTP: {rideData.rideOTP}</Text>
+      </View>
+
       {/* Map View */}
       <MapView
         {...panResponder.panHandlers}
@@ -327,15 +372,22 @@ const RideDetails = ({ navigation, route }) => {
             lineDashPattern={[0]}
           />
         )}
+        {vehicleLocation && (
+          <Marker
+            coordinate={vehicleLocation}
+            title="Vehicle"
+            pinColor="blue"
+          />
+        )}
       </MapView>
 
       <Animated.View
         style={[styles.detailsContainer, { height: animatedHeight }]}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
-        <TouchableOpacity style={styles.mapButton} onPress={openGoogleMaps}>
-        <Text style={styles.mapButtonText}>Map</Text>
-      </TouchableOpacity>
+          <TouchableOpacity style={styles.mapButton} onPress={openGoogleMaps}>
+            <Text style={styles.mapButtonText}>Map</Text>
+          </TouchableOpacity>
           <View style={styles.card}>
             <Text style={styles.heading}>
               {rideData?.requestType === "single" ? "Single" : "Carpool"} Ride
@@ -403,6 +455,75 @@ const RideDetails = ({ navigation, route }) => {
     </View>
   );
 };
+
+// Helper Function
+async function getDirections(origin, destination, apiKey) {
+  try {
+    const response = await fetch(
+      `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(
+        origin
+      )}&destination=${encodeURIComponent(destination)}&key=${apiKey}`
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch directions");
+    }
+
+    const data = await response.json();
+
+    if (data.status !== "OK") {
+      throw new Error(`Directions request failed: ${data.status}`);
+    }
+
+    // Decode the polyline points from the response
+    const points = data.routes[0].overview_polyline.points;
+    return decodePoly(points);
+  } catch (error) {
+    console.error("Error getting directions:", error);
+    throw error;
+  }
+}
+function decodePoly(encoded) {
+  let poly = [];
+  let index = 0,
+    len = encoded.length;
+  let lat = 0,
+    lng = 0;
+
+  while (index < len) {
+    let b,
+      shift = 0,
+      result = 0;
+
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+
+    let dlat = result & 1 ? ~(result >> 1) : result >> 1;
+    lat += dlat;
+
+    shift = 0;
+    result = 0;
+
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+
+    let dlng = result & 1 ? ~(result >> 1) : result >> 1;
+    lng += dlng;
+
+    poly.push({
+      latitude: lat / 1e5,
+      longitude: lng / 1e5,
+    });
+  }
+
+  return poly;
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -541,6 +662,21 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
     fontSize: 16,
+  },
+  otpContainer: {
+    position: "absolute",
+    top: 40,
+    right: 16,
+    backgroundColor: "#111827",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    zIndex: 10,
+  },
+  otpText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });
 

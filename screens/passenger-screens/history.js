@@ -19,7 +19,6 @@ const HistoryScreen = ({ route }) => {
           const data = await getUserData();
           setUserData(data);
           setUserId(data?.userId);
-          // console.log("Set User ID:",userId);
         } catch (error) {
           console.error('Error fetching user data:', error.message);
         }

@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.post("/", async (req, res) => {
   try {
-    const { name, email, phone, complaint, userId } = req.body;
+    const { name, email, phone, complaint, driverId: userId } = req.body;
     const compositeId = `CM-${Date.now()}`;
     console.log(name, email, phone, complaint, userId)
     const newComplaint = new Complaint({

@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View , Linking} from 'react-native';
 import { GOOGLE_API_KEY } from "@env";
 import { db } from '../../data-service/firebase';
-import * as Location from 'expo-location';
 import { doc, onSnapshot} from '@firebase/firestore';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import * as Location from 'expo-location';
 import getCoordinates from '../../data-service/helper';
 
 const getDirections = async (origin, destination, apiKey) => {
@@ -77,39 +77,37 @@ const CarpoolOngoingRideScreen = ({ navigation, route }) => {
   const [mapRegion, setMapRegion] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const data = route.params;
-
-  console.log(data)
-  
   // Location useEffect
   useEffect(() => {
     const fetchLocations = async () => {
       try {
         setIsLoading(true);
-      
+  
         let { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
           Alert.alert('Location Error', 'Permission to access location was denied.');
           return;
         }
-      
+  
         let location = await Location.getCurrentPositionAsync({});
         const currentCoords = {
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
         };
         setCurrentLocation(currentCoords);
-      
-        const pickupLocation = data.pickup || data.requestOrigin;
-        const pickupCoordinates = await getCoordinates(pickupLocation, GOOGLE_API_KEY);
+        const pickupCoordinates = await getCoordinates(data.rideData.pickup, GOOGLE_API_KEY);
+        const dropoffCoordinates = await getCoordinates(data.rideData.dropoff, GOOGLE_API_KEY);
+  
+        if (!pickupCoordinates || !dropoffCoordinates) {
+          throw new Error('Could not determine pickup or dropoff coordinates.');
+        }
+  
         setPickupCoords(pickupCoordinates);
-      
-        const dropoffLocation = data.dropoff || data.requestDestination;
-        const dropoffCoordinates = await getCoordinates(dropoffLocation, GOOGLE_API_KEY);
         setDropoffCoords(dropoffCoordinates);
-      
+  
         const routePoints = await getDirections(pickupCoordinates, dropoffCoordinates, GOOGLE_API_KEY);
         setRouteCoordinates(routePoints);
-      
+  
         calculateMapRegion(pickupCoordinates, dropoffCoordinates, routePoints);
         setIsLoading(false);
       } catch (error) {
@@ -118,27 +116,30 @@ const CarpoolOngoingRideScreen = ({ navigation, route }) => {
         setIsLoading(false);
       }
     };
-    
+  
     fetchLocations();
   }, [data]);
-
-  // Listen for when the ride is completed
+  
+  // listen for when the ride is completed
   useEffect(() => {
-    if (!data.rideId) return; 
-  
-    const rideRef = doc(db, 'Rides', data.rideId); // Adjust collection name if needed
-  
-    const unsubscribe = onSnapshot(rideRef, (docSnapshot) => {
-      if (docSnapshot.exists()) {
+    if ( !data.rideData?.id ) return;
+    const rideRef = doc(db , "AcceptedCarpoolRides" , data.rideData.id)
+    console.log('in the ride payment useeffect')
+    const unsubscribe = onSnapshot(rideRef , ( docSnapshot ) => {
+      if ( docSnapshot.exists() ){
         const rideData = docSnapshot.data();
-        if (rideData.status === "completed") {
-          navigation.replace('Review', { rideData: rideData });
+        console.log(rideData)
+        if ( rideData.rideStatus === "completed" ){
+          navigation.replace("Ride Payment" , {
+            driverId: rideData.driverId,
+            rideFare: rideData.fare[0],
+            rideData: data
+          })
         }
       }
     });
-  
-    return () => unsubscribe();
-  }, [data.rideId, navigation]);
+    return () => unsubscribe()
+  } , [data.rideData?.id, navigation])
 
   const calculateMapRegion = (pickup, dropoff, routePoints = []) => {
     let minLat = Math.min(pickup.latitude, dropoff.latitude);
@@ -194,9 +195,9 @@ const CarpoolOngoingRideScreen = ({ navigation, route }) => {
   const handleContactDriver = () => {
     Alert.alert(
       "Contact Driver",
-      `You can contact the driver at: ${data.driverNumber}`,
+      `You can contact the driver at: ${data.rideData.driverPhone}`,
       [
-        { text: "Call", onPress: () => Linking.openURL(`tel:${data.driverNumber}`) },
+        { text: "Call", onPress: () => Linking.openURL(`tel:${data.rideData.driverPhone}`) },
         { text: "Cancel", style: "cancel" }
       ]
     );
@@ -249,29 +250,29 @@ const CarpoolOngoingRideScreen = ({ navigation, route }) => {
 
         <View style={styles.infoBox}>
           <Text style={styles.infoLabel}>Driver Name</Text>
-          <Text style={styles.infoValue}>{data.driverName || "Loading..."}</Text>
+          <Text style={styles.infoValue}>{( data.rideData.driverFirstName + ' ' + data.rideData.driverLastName) || "Loading..."}</Text>
         </View>
 
         <View style={styles.infoBox}>
           <Text style={styles.infoLabel}>Car</Text>
           <Text style={styles.infoValue}>
-            {data.carName || "Loading..."} - {data.carNumber || ""}
+            {data.rideData.vehicle || "Loading..."} - {data.rideData.licensePlate || ""}
           </Text>
         </View>
 
         <View style={styles.infoBox}>
           <Text style={styles.infoLabel}>Pickup Location</Text>
-          <Text style={styles.infoValue}>{data.pickup || data.requestOrigin || "Loading..."}</Text>
+          <Text style={styles.infoValue}>{data.rideData.pickup || "Loading..."}</Text>
         </View>
 
         <View style={styles.infoBox}>
           <Text style={styles.infoLabel}>Dropoff Location</Text>
-          <Text style={styles.infoValue}>{data.dropoff || data.requestDestination || "Loading..."}</Text>
+          <Text style={styles.infoValue}>{data.rideData.dropoff|| "Loading..."}</Text>
         </View>
 
         <View style={styles.infoBox}>
           <Text style={styles.infoLabel}>Price</Text>
-          <Text style={styles.infoValue}>PKR{data.fare || "Loading..."}</Text>
+          <Text style={styles.infoValue}>PKR{data.rideData.fare || "Loading..."}</Text>
         </View>
 
         <View style={styles.buttonContainer}>

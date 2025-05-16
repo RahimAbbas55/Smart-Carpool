@@ -19,15 +19,12 @@ const WalletScreen = () => {
         console.log('Error fetching user data:', error.message);
       }
     };
-
     fetchUser();
   }, []);
-
   const handlePaymentNavigation = () => {
     Alert.alert("Add Funds", "Redirecting to JazzCash payment gateway...");
     navigation.navigate("Payment");
   };
-
   const handleCardNavigation = () =>{
     navigation.navigate("Add Card");
   };

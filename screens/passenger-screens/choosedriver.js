@@ -72,27 +72,15 @@ const ChooseDriverScreen = ({ navigation, route }) => {
       console.log("No ride ID provided");
       return;
     }
-    
-    console.log("Setting up listener for ride:", rideId);
     const rideRef = doc(db, "Rides", rideId);
-    
     const unsubscribe = onSnapshot(
       rideRef,
       (doc) => {
         if (doc.exists()) {
           const data = doc.data();
           setRideData(data);
-          console.log("Ride data updated:", data);
-          
-          // Log the acceptance statuses
-          console.log("Acceptance status:", {
-            requestAccepted: data.requestAccepted,
-            passengerAccepted: data.passengerAccepted
-          });
-          
           // Update waiting state based on whether a driver has responded
           setIsWaitingForDriver(!data.driverName);
-
           // If both driver and passenger have accepted, move to ongoing ride
           if (data.requestAccepted && data.passengerAccepted) {
             console.log("Both parties accepted, navigating to OngoingRide");
@@ -104,7 +92,8 @@ const ChooseDriverScreen = ({ navigation, route }) => {
               pickup: data.requestOrigin,
               dropoff: data.requestDestination,
               fare: data.offeredPrice || data.requestFare,
-              driverNumber: data.driverNumber
+              driverNumber: data.driverNumber,
+              rideOTP: data.rideOTP
             });
           }
         } else {
@@ -112,34 +101,29 @@ const ChooseDriverScreen = ({ navigation, route }) => {
         }
       },
       (error) => {
-        console.error("Error getting ride updates:", error);
-        Alert.alert("Error", "Failed to get ride updates. Please try again.");
+        console.error("Error getting ride updates:", error.message);
       }
     );
 
     return () => {
-      console.log("Cleaning up listener");
       unsubscribe();
     };
   }, [rideId, navigation]);
 
   const handleAcceptDriver = async () => {
     try {
-      console.log("Passenger accepting driver for ride:", rideId);
       const rideRef = doc(db, "Rides", rideId);
       await updateDoc(rideRef, {
         passengerAccepted: true,
-        status: "ongoing" // Add a status field to track the ride state
+        status: "ongoing"
       });
     } catch (error) {
-      console.error("Error accepting driver:", error);
-      Alert.alert("Error", "Failed to accept driver. Please try again.");
+      console.error("Error accepting driver:", error.message);
     }
   };
 
   const handleDeclineDriver = async () => {
     try {
-      console.log("Passenger declining driver for ride:", rideId);
       const rideRef = doc(db, "Rides", rideId);
       await updateDoc(rideRef, {
         requestAccepted: false,
@@ -153,14 +137,12 @@ const ChooseDriverScreen = ({ navigation, route }) => {
       Alert.alert("Driver Declined", "Waiting for another driver...");
       setIsWaitingForDriver(true);
     } catch (error) {
-      console.error("Error declining driver:", error);
-      Alert.alert("Error", "Failed to decline driver. Please try again.");
+      console.error("Error declining driver:", error.message);
     }
   };
 
   const handleCancelRequest = async () => {
     try {
-      console.log("Passenger cancelling ride request:", rideId);
       const rideRef = doc(db, "Rides", rideId);
       await updateDoc(rideRef, {
         status: "cancelled",
@@ -169,8 +151,7 @@ const ChooseDriverScreen = ({ navigation, route }) => {
       Alert.alert("Request Cancelled", "Your ride request has been cancelled.");
       navigation.replace("Home");
     } catch (error) {
-      console.error("Error cancelling request:", error);
-      Alert.alert("Error", "Failed to cancel request. Please try again.");
+      console.error("Error cancelling request:", error.message);
     }
   };
 

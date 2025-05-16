@@ -60,7 +60,8 @@ export default function RideRequests({ navigation , route }) {
         driverName: data?.firstName + '' + data?.lastName,
         car: data?.vehicle,
         carNumber: data?.licensePlate,
-        driverNumber: data?.driverPhone
+        driverNumber: data?.driverPhone,
+        rideOTP: Math.floor(1000 + Math.random() * 9000).toString()
       });
       setTimeout(() => {
         navigation.navigate('ridedetails' , {rideId : id})

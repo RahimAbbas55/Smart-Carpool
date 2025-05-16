@@ -5,7 +5,7 @@ const complaintSchema = new mongoose.Schema({
   email: { type: String, required: true },
   name: { type: String, required: true },
   phone: { type: String, required: true },
-  driverId: { type: mongoose.Schema.Types.ObjectId, required: true, ref: "Passenger" },
+  userId: { type: mongoose.Schema.Types.ObjectId, required: true, ref: "passengers" },
   compositeId: { type: String, required: true, unique: true }
 });
 

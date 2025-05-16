@@ -1,10 +1,9 @@
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Alert, Keyboard, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-
-import Button from '../../components/Button';
 import { getBackendUrl } from '../../constants/ipConfig';
+import Button from '../../components/Button';
 
 const ReviewScreen = () => {
     const navigation = useNavigation();
@@ -33,14 +32,14 @@ const ReviewScreen = () => {
             rating,
             review
         };
-
+        console.log(reviewData)
         try {
             const response = await fetch(`${getBackendUrl()}passengerRating`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(reviewData),
             });
-
+            console.log(response)
             if (response.ok) {
                 Alert.alert("Success", "Review Submitted Successfully!");
                 navigation.navigate('Home');
@@ -49,7 +48,6 @@ const ReviewScreen = () => {
             }
         } catch (error) {
             console.error("Error submitting review:", error);
-            Alert.alert("Error", "Something went wrong.");
         }
     };
 

@@ -30,8 +30,7 @@ export default function App() {
       };
   
       fetchUser();
-    }, []);
-  
+  }, []);
   
   const isValidPhoneNumber = (number) => /^\+92[0-9]{10}$/.test(number);
 
@@ -54,7 +53,7 @@ export default function App() {
         Alert.alert("Error", data.error || "Failed to send OTP.");
       }
     } catch (error) {
-      Alert.alert("Error", "Something went wrong.");
+      console.log("Something went wrong." , error.message);
     }
   };
 
@@ -77,19 +76,15 @@ export default function App() {
         Alert.alert("Invalid OTP", data.message || "Please try again.");
       }
     } catch (error) {
-      Alert.alert("Error", "Something went wrong.");
+      console.log("Something went wrong." , error.message);
     }
   };
 
   const handleMPINSubmit = async () => {
-    console.log("MPIN:", mpin); 
-    console.log("Phone:", phone);
-    console.log
     if (mpin.length !== 4) {
       Alert.alert("Invalid MPIN", "MPIN should be exactly 4 digits.");
       return;
     }
-  
     try {
       const response = await fetch(`${getBackendUrl()}accounts`, {
         method: "POST",
@@ -100,10 +95,7 @@ export default function App() {
           mpin,
         }),
       });
-  
       const data = await response.json();
-      console.log("data",data);
-  
       if (response.ok) {
         Alert.alert("Success", "Card added successfully!");
         navigation.goBack();
@@ -111,7 +103,7 @@ export default function App() {
         Alert.alert("Error", data.error || "Failed to add card.");
       }
     } catch (error) {
-      Alert.alert("Error", "Something went wrong.");
+      console.log("Something went wrong." , error.message);
     }
   };
   

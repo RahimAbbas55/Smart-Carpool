@@ -15,9 +15,7 @@ const SettingsScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [profileImage, setProfileImage] = useState(null);
-
   const API_KEY = "068837d15525cd65b1c49b07e618821b";
-
   // useEffect to fetch user details
   useEffect(() => {
     const fetchUser = async () => {
@@ -36,8 +34,6 @@ const SettingsScreen = () => {
 
     fetchUser();
   }, []);
-
-
   // function to pick image from device's gallery
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -86,7 +82,6 @@ const SettingsScreen = () => {
       }
     }
   };
-
   // function to update the user's details
   const handleSave = async (imageUrl = null) => {
     try {

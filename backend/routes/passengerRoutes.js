@@ -239,7 +239,6 @@ router.get('/getpassengerImage', async (req, res) => {
   }
 });
 
-
 //fetching user data after their authentication
 router.post('/userData' , async (req , res) => {
   const { token } = req.body;

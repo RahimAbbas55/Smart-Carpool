@@ -1,10 +1,13 @@
 import { createStackNavigator } from "@react-navigation/stack";
 import { NavigationContainer } from "@react-navigation/native";
-import { createDrawerNavigator } from "@react-navigation/drawer";
 import { useState, useEffect } from "react";
 import { globalColors } from "./constants/colors";
 import { ActivityIndicator } from "react-native";
 import { DriverProvider } from "./context/DriverContext";
+import { 
+  createDrawerNavigator,
+
+} from '@react-navigation/drawer';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 // Passenger Screens
 import CarpoolRideScreen from "./screens/passenger-screens/carpoolride";
@@ -46,12 +49,11 @@ import CarpoolRequests from "./screens/driver-screens/CarpoolRequests";
 import CarpoolRideDetail from "./screens/driver-screens/CarpoolRideDetail";
 import VehicleDetails from "./screens/driver-screens/VehicleDetails";
 import ContactUs from "./screens/driver-screens/ContactUs";
-import ChatBotScreen from "./screens/driver-screens/ChatBotScreen";
 import ChatBot from "./screens/passenger-screens/ChatBot"
+import DriverChatBot from "./screens/driver-screens/DriverChatBot";
 
 const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
-
 function DriverDrawer({ route }) {
   const { driverDetails } = route.params || {};
   return (
@@ -114,8 +116,8 @@ function DriverDrawer({ route }) {
           }}
         />
         <Drawer.Screen
-          name="support"
-          component={ContactUs}
+          name="Support"
+          component={DriverChatBot}
           options={{ headerShown: true , headerStyle: {
             backgroundColor: globalColors.violetBlue,
           },
@@ -127,6 +129,7 @@ function DriverDrawer({ route }) {
     </DriverProvider>
   );
 }
+
 
 export default function App() {
   const [sessionToken, setSessionToken] = useState(undefined);
@@ -240,7 +243,7 @@ export default function App() {
             options={{ headerShown: false }}
           />
           <Stack.Screen
-            name="Review"
+            name="review"
             component={ReviewScreen}
             options={{ headerShown: false }}
           />
@@ -387,12 +390,24 @@ export default function App() {
           <Stack.Screen
             name="requests"
             component={RideRequests}
-            // options={{ headerShown: false }}
+            options={{ headerBackTitle: " ",
+              headerTitle: "Incoming Single Ride Requests",
+              headerStyle:{
+                backgroundColor: globalColors.violetBlue,
+              },
+              headerTintColor: '#ffffff'
+             }}
           />
           <Stack.Screen
             name="carpool_requests"
             component={CarpoolRequests}
-            // options={{ headerShown: false }}
+            options={{ headerBackTitle: " ",
+              headerTitle: "Incoming Carpool Ride Requests",
+              headerStyle:{
+                backgroundColor: globalColors.violetBlue,
+              },
+              headerTintColor: '#ffffff'
+             }}
           />
           <Stack.Screen
             name="ridedetails"

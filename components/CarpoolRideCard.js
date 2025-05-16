@@ -5,7 +5,7 @@ export default function CarpoolRideCard({
     data, onAccept, onReject
 }) {
   return (
-    <TouchableOpacity style={styles.card}>
+    <TouchableOpacity style={styles.card} activeOpacity={0.95}>
       <View style={styles.header}>
         <View style={styles.passengerInfo}>
           <Text style={styles.passengerName}>{data.passengerName}</Text>
@@ -45,23 +45,24 @@ export default function CarpoolRideCard({
           </View>
         </View>
       </View>
+      
       <View style={styles.buttonsContainer}>
         <TouchableOpacity 
-          style={[styles.actionButton, styles.rejectButton]} 
+          style={styles.rejectButton} 
           onPress={onReject}
-          activeOpacity={0.7}
+          activeOpacity={0.8}
         >
-          <Ionicons name="close" size={20} color="white" />
-          <Text style={styles.buttonText}>Reject</Text>
+          <Ionicons name="close-circle" size={22} color="#F44336" />
+          <Text style={styles.rejectButtonText}>Decline</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
-          style={[styles.actionButton, styles.acceptButton]} 
+          style={styles.acceptButton} 
           onPress={onAccept}
-          activeOpacity={0.7}
+          activeOpacity={0.8}
         >
-          <Ionicons name="checkmark" size={20} color="white" />
-          <Text style={styles.buttonText}>Accept</Text>
+          <Ionicons name="checkmark-circle" size={22} color="white" />
+          <Text style={styles.acceptButtonText}>Accept Ride</Text>
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -71,15 +72,15 @@ export default function CarpoolRideCard({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginVertical: 8,
+    borderRadius: 16,
+    padding: 18,
+    marginVertical: 10,
     marginHorizontal: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 5,
   },
   header: {
     flexDirection: 'row',
@@ -114,16 +115,17 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   fareAmount: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: '#222',
   },
   fareLabel: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#777',
   },
   routeContainer: {
     marginTop: 8,
+    marginBottom: 8,
   },
   locationContainer: {
     flexDirection: 'row',
@@ -170,26 +172,45 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 16,
+    gap: 12,
   },
-  actionButton: {
+  rejectButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 8,
-    flex: 1,
-    marginHorizontal: 4,
+    borderRadius: 12,
+    flex: 0.38,
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#F44336',
   },
   acceptButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    flex: 0.62,
     backgroundColor: '#4CAF50',
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 3,
   },
-  rejectButton: {
-    backgroundColor: '#F44336',
+  rejectButtonText: {
+    color: '#F44336',
+    fontWeight: '600',
+    fontSize: 15,
+    marginLeft: 6,
   },
-  buttonText: {
+  acceptButtonText: {
     color: 'white',
     fontWeight: '600',
+    fontSize: 15,
     marginLeft: 6,
   }
 });

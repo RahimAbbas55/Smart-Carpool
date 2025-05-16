@@ -10,6 +10,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { getUserData } from '../../data-service/auth';
+import { getDriverdata } from "../../data-service/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import ContactUsScreen from "./contact";
 import HistoryScreen from "./history";
@@ -19,9 +21,8 @@ import RatingsAndReviewsScreen from "./ratingsandreviews";
 import RequestRideScreen from "./RequestRideScreen";
 import SettingsScreen from "./settings";
 import WalletScreen from "./wallet";
-import { getDriverdata } from "../../data-service/auth";
-import { getUserData } from '../../data-service/auth';
-import ChatBotScreen from "../driver-screens/ChatBotScreen";
+import ChatBot from "./ChatBot";
+// import ChatBotScreen from "../driver-screens/ChatBotScreen";
 
 const pages = [
   { name: "Home", component: RequestRideScreen, icon: "home" },
@@ -35,7 +36,7 @@ const pages = [
   },
   { name: "ContactUs", component: ContactUsScreen, icon: "mail" },
   { name: "Settings", component: SettingsScreen, icon: "settings" },
-  { name: "Support" , component: ChatBotScreen , icon: "mail"},
+  { name: "Support" , component: ChatBot , icon: "mail"},
   { name: "Driver", component: LoginScreen, icon: "person" },
 ];
 
@@ -86,7 +87,6 @@ const MenuScreen = ({ navigation, route }) => {
         routes: [{ name: "Login" }],
       });
     } catch (error) {
-      console.error("Error logging out:", error);
       Alert.alert(
         "Error",
         "An error occurred while logging out. Please try again."

@@ -22,7 +22,6 @@ const RatingsAndReviewsScreen = () => {
                 console.log('Error fetching user data:', error.message);
             }
         };
-
         fetchUser();
     }, []);
 
@@ -30,19 +29,15 @@ const RatingsAndReviewsScreen = () => {
 
     useEffect(() => {
         if (!passengerId) return;
-
         const fetchRatings = async () => {
             if (!passengerId) return;
-
             try {
                 const response = await fetch(`${getBackendUrl()}passengerRating/${passengerId}`);
-
                 if (!response.ok) {
                     const errorData = await response.json();
                     console.log("Error fetching ratings:", errorData.message);
                     return;
                 }
-
                 const data = await response.json();
                 console.log("Fetched Ratings:", data);
                 setReviews(data);
@@ -52,8 +47,6 @@ const RatingsAndReviewsScreen = () => {
                 setLoading(false);
             }
         };
-
-
         fetchRatings();
     }, [passengerId]);
 

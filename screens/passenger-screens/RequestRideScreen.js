@@ -11,6 +11,7 @@ import {
   Dimensions,
   Platform,
   ActivityIndicator,
+  TextInput,
 } from "react-native";
 import { getUserData } from "../../data-service/auth";
 import { GOOGLE_API_KEY } from "@env";
@@ -77,61 +78,79 @@ const RequestRideScreen = ({ navigation }) => {
   }, []);
 
   // useEffect to fetch the coords of pickup and dropoff
-  useEffect(() => {
-    const fetchCoord = async () => {
-      if (dropoff && pickup) {
-        try {
-          const pickupLocation = await getCoordinates(pickup, GOOGLE_API_KEY);
-          const dropoffLocation = await getCoordinates(dropoff, GOOGLE_API_KEY);
+  // useEffect(() => {
+  //   const fetchCoord = async () => {
+  //     if (dropoff && pickup) {
+  //       try {
+  //         const pickupLocation = await getCoordinates(pickup, GOOGLE_API_KEY);
+  //         const dropoffLocation = await getCoordinates(dropoff, GOOGLE_API_KEY);
           
-          if (!pickupLocation) {
-            console.warn('Could not find coordinates for pickup location');
-            return;
-          }
+  //         if (!pickupLocation) {
+  //           console.warn('Could not find coordinates for pickup location');
+  //           return;
+  //         }
           
-          if (!dropoffLocation) {
-            console.warn('Could not find coordinates for dropoff location');
-            return;
-          }
-          setPickupCoords({
-            latitude: pickupLocation.latitude,
-            longitude: pickupLocation.longitude
-          });
+  //         if (!dropoffLocation) {
+  //           console.warn('Could not find coordinates for dropoff location');
+  //           return;
+  //         }
+  //         setPickupCoords({
+  //           latitude: pickupLocation.latitude,
+  //           longitude: pickupLocation.longitude
+  //         });
           
-          setDropoffCoords({
-            latitude: dropoffLocation.latitude,
-            longitude: dropoffLocation.longitude
-          });
-          if (pickupCoords && dropoffCoords) {
-            const coordinates = await getRoute(pickupCoords, dropoffCoords);
-            if (coordinates.length > 0) {
-              setRouteCoordinates(coordinates);
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching coordinates:', error);
-          Alert.alert(
-            'Error',
-            'Could not get location coordinates. Please try again.'
-          );
-        }
-      }
-    };
-    fetchCoord();
-  }, [pickup, dropoff]);
+  //         setDropoffCoords({
+  //           latitude: dropoffLocation.latitude,
+  //           longitude: dropoffLocation.longitude
+  //         });
+  //         if (pickupCoords && dropoffCoords) {
+  //           const coordinates = await getRoute(pickupCoords, dropoffCoords);
+  //           if (coordinates.length > 0) {
+  //             setRouteCoordinates(coordinates);
+  //           }
+  //         }
+  //       } catch (error) {
+  //         console.error('Error fetching coordinates:', error);
+  //         Alert.alert(
+  //           'Error',
+  //           'Could not get location coordinates. Please try again.'
+  //         );
+  //       }
+  //     }
+  //   };
+  //   fetchCoord();
+  // }, [pickup, dropoff]);
 
-  // useEffect to dynamically fetch the right fare amount
   useEffect(() => {
-    if (pickupCoords && dropoffCoords) {
-      (async () => {
-        const coordinates = await getRoute(pickupCoords, dropoffCoords);
+  const fetchCoord = async () => {
+    if (pickup && dropoff) {
+      try {
+        const pickupLocation = await getCoordinates(pickup, GOOGLE_API_KEY);
+        const dropoffLocation = await getCoordinates(dropoff, GOOGLE_API_KEY);
+
+        if (!pickupLocation || !dropoffLocation) {
+          console.warn("Invalid pickup or dropoff location");
+          return;
+        }
+
+        setPickupCoords(pickupLocation);
+        setDropoffCoords(dropoffLocation);
+
+        const coordinates = await getRoute(pickupLocation, dropoffLocation);
         if (coordinates.length > 0) {
           setRouteCoordinates(coordinates);
         }
-        await calculateFare(pickupCoords, dropoffCoords); // Now fare updates dynamically
-      })();
+
+        await calculateFare(pickupLocation, dropoffLocation);
+      } catch (error) {
+        console.error("Error fetching coordinates or calculating fare:", error);
+        Alert.alert("Error", "Could not retrieve route or fare. Try again.");
+      }
     }
-  }, [pickupCoords, dropoffCoords]);
+  };
+
+  fetchCoord();
+}, [pickup, dropoff]);
 
   const getRoute = async (pickupCoords, dropoffCoords) => {
     const origin = `${pickupCoords.latitude},${pickupCoords.longitude}`;
@@ -160,24 +179,20 @@ const RequestRideScreen = ({ navigation }) => {
   const calculateFare = async (pickupCoords, dropoffCoords) => {
     const origin = `${pickupCoords.latitude},${pickupCoords.longitude}`;
     const destination = `${dropoffCoords.latitude},${dropoffCoords.longitude}`;
-    console.log("Calculating fare for:", pickupCoords, dropoffCoords);
     
     const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${destination}&key=${GOOGLE_API_KEY}`;
 
     try {
       const response = await fetch(url);
       const data = await response.json();
-
       if (data.rows.length > 0 && data.rows[0].elements.length > 0) {
-        const distanceInMeters = data.rows[0].elements[0].distance.value; // Distance in meters
-        const distanceInKm = distanceInMeters / 1000; // Convert to km
-
-        // Example Fare Calculation Formula
-        const baseFare = 100; // Base fare in PKR
-        const perKmRate = 50; // Rate per km in PKR
+        const distanceInMeters = data.rows[0].elements[0].distance.value;
+        const distanceInKm = distanceInMeters / 1000; 
+        const baseFare = 100; 
+        const perKmRate = 50; 
         const estimatedFare = baseFare + perKmRate * distanceInKm;
-
-        setFare(estimatedFare.toFixed(0)); // Round to nearest PKR
+        console.log(estimatedFare)
+        setFare(estimatedFare.toFixed(0));
       }
     } catch (error) {
       console.error("Error fetching distance:", error);
@@ -312,12 +327,6 @@ const RequestRideScreen = ({ navigation }) => {
           }}
           enablePoweredByContainer={false}
           onPress={(data, details = null) => {
-            // const location = {
-            //   latitude: details.geometry.location.lat,
-            //   longitude: details.geometry.location.lng,
-            //   description: data.description,
-            // };
-            // dispatch(setOrigin(location.description));
             setPickup(data.description);
           }}
         />
@@ -341,24 +350,15 @@ const RequestRideScreen = ({ navigation }) => {
           }}
           enablePoweredByContainer={false}
           onPress={(data, details = null) => {
-            // const location = {
-            //   latitude: details.geometry.location.lat,
-            //   longitude: details.geometry.location.lng,
-            //   description: data.description,
-            // };
-            // dispatch(setDestination(location));
-            // setDestination({
-            //   latitude: details.geometry.location.lat,
-            //   longitude: details.geometry.location.lng,
-            // });
             setDropoff(data.description); 
           }}
         />
-        <InputField
-          placeholder="Offer your fare in PKR"
-          keyboardType="numeric"
+       
+        <TextInput
+          style={[styles.input]}
+          placeholder="Enter your fare"
+          editable={true}
           value={fare}
-          onChangeText={(text) => setFare(text)}
         />
       </View>
       <View style={styles.button}>
@@ -448,6 +448,21 @@ const styles = StyleSheet.create({
   button: {
     width: width * 0.9,
     marginHorizontal: width * 0.09,
+  },
+  input: {
+    width: '100%',
+    height: 50,
+    borderWidth: 1,
+    borderColor: '#DADADA',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    backgroundColor: '#FFF',
+    marginBottom: 15,
+    fontSize: 16,
+  },
+  disabledInput: {
+    backgroundColor: '#F3F4F6',
+    color: '#6B7280',
   },
 });
 

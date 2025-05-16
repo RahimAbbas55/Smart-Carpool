@@ -31,7 +31,6 @@ const PackagesScreen = () => {
         setUserId(data?.userId);
         setWallet(data?.wallet || 0);
         setEmail(data?.email || '');
-        // console.log("Set User ID:", userId);
       } catch (error) {
         console.error('Error fetching user data:', error.message);
       }
@@ -43,11 +42,9 @@ const PackagesScreen = () => {
       try {
         const response = await fetch(`${getBackendUrl()}packages`);
         if (!response.ok) throw new Error('Failed to load packages');
-
         const data = await response.json();
         setPackages(data);
       } catch (error) {
-        console.error('Error fetching packages:', error);
         Alert.alert('Error', 'Failed to load packages.');
       } finally {
         setLoading(false);
@@ -58,7 +55,6 @@ const PackagesScreen = () => {
 
   useEffect(() => {
     if (!userId) {
-      console.log(" Waiting for userId to be set...");
       return;
     }
     const fetchSubscription = async () => {
@@ -66,7 +62,6 @@ const PackagesScreen = () => {
         console.warn("UserId is missing! API call skipped.");
         return;
       }
-
       const apiUrl = `${getBackendUrl()}subscription/currentSubscription/${userId}`;
       try {
         const response = await fetch(apiUrl);
@@ -79,20 +74,15 @@ const PackagesScreen = () => {
         console.error(' Error fetching subscription:', error);
       }
     };
-
     fetchSubscription();
   }, [userId]);
 
   const handleSelectPlan = (plan) => setSelectedPlan(plan);
 
   const calculateValidity = (duration) => {
-    console.log("calculateValidity called with:", duration);
-
     const currentDate = new Date();
     const startDate = currentDate.toISOString().split('T')[0];
-
     let durationDays = 0;
-
     if (duration.includes("week")) {
       durationDays = parseInt(duration) * 7;
     } else if (duration.includes("month")) {
@@ -101,20 +91,13 @@ const PackagesScreen = () => {
       console.error("Unknown duration format:", duration);
       return { startDate: null, endDate: null };
     }
-
     const endDateObj = new Date();
     endDateObj.setDate(currentDate.getDate() + durationDays);
     const endDate = endDateObj.toISOString().split('T')[0];
-
-    console.log("Returning Validity:", startDate, endDate);
     return { startDate, endDate };
   };
 
   const handleProceedToPayment = async () => {
-    console.log("Proceed button clicked");
-    console.log("Wallet balance:", wallet);
-
-
     if (!selectedPlan) {
       Alert.alert('Error', 'Please select a subscription plan before proceeding.');
       return;
@@ -130,25 +113,8 @@ const PackagesScreen = () => {
       Alert.alert('Insufficient Balance', 'You do not have enough balance in your wallet.');
       return;
     }
-    console.log("Selected Plan Fee:", selectedPlan.fee);
-    console.log("Wallet Balance Check:", wallet >= selectedPlan.fee);
-
-
     const { startDate, endDate } = calculateValidity(selectedPlan.duration);
-    console.log("Calculated Validity:", startDate, endDate);
-
-
-    console.log('Sending subscription request:', {
-      userId,
-      packageName: selectedPlan.name,
-      validFrom: startDate,
-      validTo: endDate,
-      paymentStatus: 'completed',
-    });
-
-    console.log("Attempting to send API request...");
     try {
-      console.log("Sending request now...");
       const response = await fetch(`${getBackendUrl()}subscription`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -196,7 +162,6 @@ const PackagesScreen = () => {
       </View>
     );
   }
-  console.log(currentSubscription)
   return (
     <View style={styles.container}>
       <View style={styles.header}>

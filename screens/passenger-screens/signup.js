@@ -68,7 +68,6 @@ const SignUpScreen = ({ navigation }) => {
         Alert.alert('Error', data.message || 'Sign-up failed');
       }
     } catch (error) {
-      console.error('Error:', error);
       Alert.alert('Error', 'An error occurred during sign-up');
     }
   };
